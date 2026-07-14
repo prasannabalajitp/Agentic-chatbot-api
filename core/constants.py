@@ -1,0 +1,124 @@
+class Constants:
+    USERS = "users"
+    THREADS = "threads"
+    CONVERSATIONS = "conversations"
+    CHECKPOINTS = "checkpoints"
+    CHECKPOINTS_WRITES = "checkpoint_writes"
+    AUTH = "Authentication"
+
+    MESSAGES = "messages"
+    NAME = "name"
+    RESULTS = "results"
+    EMAIL = "email"
+    TOOLS = "tools"
+    CHATBOT = "chatbot"
+    STRF_TIME = "%d-%m-%Y %H:%M:%S"
+
+    THREAD_ID = "thread_id"
+    DEFAULT_TITLE = "New Conversation"
+    USR_QRY = "User query"
+    USER_ID = "user_id"
+    TITLE = "title"
+    MSG_COUNT = "message_count"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+    LST_MSG_AT = "last_message_at"
+    ID = "_id"
+    SET = "$set"
+    INC = "$inc"
+    EXP = "exp"
+
+    MEDIA_TYPE = "text/event-stream"
+    CACHE_CONTROL = "Cache-Control"
+    NO_CACHE = "no-cache"
+    CONN = "Connection"
+    KEEP_ALIVE = "keep-alive"
+    BUFFERING = "X-Accel-Buffering"
+    NO = "no"
+
+    CONFIGURABLE = "configurable"
+    CHANL_VALUES = "channel_values"
+    TYPE = "type"
+    HUMAN = "human"
+    AI = "ai"
+    CONTENT = "content"
+    TOOL_CALLS = "tool_calls"
+
+    CRET_USR_DESC = "Unique user identifier"
+
+    USR_IDENTIFIER = "User identifier"
+    CONV_IDENTIFIER = "Conversation thread identifier"
+    USR_NOT_FOUND = "User not found."
+    USR_EXISTS = "User already exists"
+    CONVERSATION_NOT_FOUND = "Conversation not found."
+    PAGE_EXCP = "Page number must be greater than 0"
+    LMT_EXCP = "Limit must be between 1 and 100"
+    CHART_STRT = "chat_start"
+    CHART_MDL_STRT = "chat_model_start"
+    CHART_MDL_END = "chat_model_end"
+    ON_CHAT_MDL_STRM = "on_chat_model_stream"
+    ON_TOOL_START = "on_tool_start"
+    ON_TOOL_END = "on_tool_end"
+
+    QUERY = "query"
+    MDL = "model"
+    STREAMING_MDL = "meta/llama-3.1-8b-instruct"
+
+    EMPTY_STRING = ""
+    V2 = "v2"
+    EVENT = "event"
+    DATA = "data"
+    CHUNK = "chunk"
+    LLM_CHUNK = "llm_chunk"
+    TOOL_CALL = "tool_call"
+    TOOL = "tool"
+    ARGS = "arguments"
+    INPUT = "input"
+    OUTPUT = "output"
+    TOOL_RESP = "tool_response"
+    TOOL_ID = "tool_call_id"
+    RESPONSE = "response"
+    ERR = "error"
+    MSG = "message"
+    DONE = "done"
+    TS = "timestamp"
+    PAGE = "page"
+    LIMIT = "limit"
+    TOTAL = "total"
+    TTL_PAGES = "total_pages"
+    HAS_PREV = "has_previous"
+    HAS_NXT = "has_next"
+    CONV_ACTY = "conversation_activity"
+    CONV_UPDATED = "conversation_updated"
+    FNSH_RESON = "finish_reason"
+    CMPLTD = "completed"
+    ITEMS = "items"
+    LATITUDE = "latitude"
+    LONGITUDE = "longitude"
+    CURRENT = "current"
+    TIMEZONE = "timezone"
+    AUTO = "auto"
+    BDY = 'body'
+    HREF = 'href'
+    CONV_DEL_SUC = "Conversation deleted successfully."
+    USR_DEL_SUC = "User Deleted Successfully."
+    CONV_HST_SUC = "Conversation history cleared successfully."
+    CONV_TITLE_NAME_EXCP = "Conversation title cannot be empty"
+    CONV_TITLE_EXCP = "Conversation title cannot exceed 100 characters."
+    NO_RSLTS_FND = "No search results found."
+    INVALID_TKN = "Invalid or expired token"
+    HASHED_PWD = "hashed_password"
+
+    TEMP_VALUES = [
+                        "temperature_2m",
+                        "relative_humidity_2m",
+                        "apparent_temperature",
+                        "is_day",
+                        "precipitation",
+                        "rain",
+                        "weather_code",
+                        "wind_speed_10m"
+                    ]
+
+
+constants = Constants()
