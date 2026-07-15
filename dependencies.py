@@ -9,6 +9,7 @@ from llm.nvidia_llm import llm, chat_model
 
 from repository.conversation_repository import ConversationRepository
 from repository.user_repository import UserRepository
+from repository.refresh_token_repository import RefreshTokenRepository
 
 from service.conversation_service import ConversationService
 from service.user_service import UserService
@@ -22,11 +23,12 @@ security = HTTPBearer()
 
 user_repository = UserRepository()
 conversation_repository = ConversationRepository()
+refresh_tkn_repository = RefreshTokenRepository()
 
 weather_service = WeatherService()
 websearch_service = WebSearchService()
 
-user_service = UserService(user_repository=user_repository, conversation_repository=conversation_repository)
+user_service = UserService(user_repository=user_repository, conversation_repository=conversation_repository, refreshtoken_repository=refresh_tkn_repository)
 
 conversation_service = ConversationService(user_repository, conversation_repository, graph, llm)
 

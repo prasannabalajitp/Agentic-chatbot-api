@@ -5,6 +5,7 @@ class Constants:
     CHECKPOINTS = "checkpoints"
     CHECKPOINTS_WRITES = "checkpoint_writes"
     AUTH = "Authentication"
+    REF_TKN = "refresh_tokens"
 
     MESSAGES = "messages"
     NAME = "name"
@@ -64,6 +65,10 @@ class Constants:
     MDL = "model"
     STREAMING_MDL = "meta/llama-3.1-8b-instruct"
 
+    BCRYPT = "bcrypt"
+    ACCESS = "access"
+    REFRESH = "refresh"
+
     EMPTY_STRING = ""
     V2 = "v2"
     EVENT = "event"
@@ -100,14 +105,23 @@ class Constants:
     AUTO = "auto"
     BDY = 'body'
     HREF = 'href'
+    SUB = "sub"
+    GT = "$gt"
+    LT = "$lt"
+    EXP_AT = "expires_at"
+    TKN_HSH = "token_hash"
+    IS_REV = "is_revoked"
     CONV_DEL_SUC = "Conversation deleted successfully."
     USR_DEL_SUC = "User Deleted Successfully."
+    LOG_OUT_SUC = "Logged out successfully."
+    LOG_OUT_ALL = "Logged out from all devices."
     CONV_HST_SUC = "Conversation history cleared successfully."
     CONV_TITLE_NAME_EXCP = "Conversation title cannot be empty"
     CONV_TITLE_EXCP = "Conversation title cannot exceed 100 characters."
     NO_RSLTS_FND = "No search results found."
     INVALID_TKN = "Invalid or expired token"
     HASHED_PWD = "hashed_password"
+    INVALID_UNAME_PWD = "Invalid Username or password"
 
     TEMP_VALUES = [
                         "temperature_2m",
