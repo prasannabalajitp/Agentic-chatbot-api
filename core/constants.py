@@ -49,6 +49,7 @@ class Constants:
 
     USR_IDENTIFIER = "User identifier"
     CONV_IDENTIFIER = "Conversation thread identifier"
+    THRD_NOT_FOUND = "Thread not found."
     USR_NOT_FOUND = "User not found."
     USR_EXISTS = "User already exists"
     CONVERSATION_NOT_FOUND = "Conversation not found."
@@ -68,6 +69,8 @@ class Constants:
     BCRYPT = "bcrypt"
     ACCESS = "access"
     REFRESH = "refresh"
+    USER = "user"
+    ADM = "admin"
 
     EMPTY_STRING = ""
     V2 = "v2"
@@ -111,6 +114,8 @@ class Constants:
     EXP_AT = "expires_at"
     TKN_HSH = "token_hash"
     IS_REV = "is_revoked"
+    MODIFIED = "modified"
+    MATCHED = "matched"
     CONV_DEL_SUC = "Conversation deleted successfully."
     USR_DEL_SUC = "User Deleted Successfully."
     LOG_OUT_SUC = "Logged out successfully."
@@ -120,7 +125,12 @@ class Constants:
     CONV_TITLE_EXCP = "Conversation title cannot exceed 100 characters."
     NO_RSLTS_FND = "No search results found."
     INVALID_TKN = "Invalid or expired token"
+    USR_ROL_UPDATED = "User role updated successfully."
+    FORBIDDEN = "You don't have permission to perform this action."
+    INVALID_ROLE = "Invalid Role"
+    INVLD_TKN = "Invalid token"
     HASHED_PWD = "hashed_password"
+    ROLE = "role"
     INVALID_UNAME_PWD = "Invalid Username or password"
 
     TEMP_VALUES = [

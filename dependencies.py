@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorization
 from jose import JWTError
 
 from common.chatbot_graph import graph
+from core.constants import constants
 from core.security import verify_access_token
 from llm.nvidia_llm import llm, chat_model
 
@@ -15,6 +16,7 @@ from service.conversation_service import ConversationService
 from service.user_service import UserService
 from service.weather_service import WeatherService
 from service.web_search_service import WebSearchService
+from service.admin_service import AdminService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="auth/login"
@@ -32,6 +34,8 @@ user_service = UserService(user_repository=user_repository, conversation_reposit
 
 conversation_service = ConversationService(user_repository, conversation_repository, graph, llm)
 
+admin_service = AdminService(user_repository, conversation_repository, refresh_tkn_repository)
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = credentials.credentials
@@ -42,14 +46,27 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if not user_id:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token"
+                detail=constants.INVALID_TKN
             )
         
         user = user_repository.get_user(user_id)
 
         if not user:
-            raise HTTPException(status_code=401, detail="User Not Found")
+            raise HTTPException(status_code=401, detail=constants.USR_NOT_FOUND)
         return user
     
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail=constants.INVALID_TKN)
+    
+def require_roles(*allowed_roles):
+    def role_checker(current_user: dict = Depends(get_current_user)):
+
+        if current_user[constants.ROLE] not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=constants.FORBIDDEN
+            )
+
+        return current_user
+
+    return role_checker

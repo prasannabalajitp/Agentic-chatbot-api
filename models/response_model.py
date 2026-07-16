@@ -8,6 +8,12 @@ class UserResponse(BaseModel):
     email: str | None = None
     created_at: str | None = None
 
+class AdminUserResponse(BaseModel):
+    user_id: str
+    name: str | None = None
+    email: str | None = None
+    role: str | None = None
+    created_at: str | None = None
 
 class CreateConversationResponse(BaseModel):
     thread_id: str

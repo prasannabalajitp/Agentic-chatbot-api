@@ -28,7 +28,8 @@ class UserService:
             user_id=user_id,
             password_hash=password_hash,
             name=name,
-            email=email
+            email=email,
+            role=constants.USER
         )
 
         data = UserResponse(
@@ -50,7 +51,8 @@ class UserService:
             raise HTTPException(status_code=401, detail=constants.INVALID_UNAME_PWD)
         
         access_token = create_access_token({
-            "sub": user[constants.USER_ID]
+            constants.SUB: user[constants.USER_ID],
+            constants.ROLE: user[constants.ROLE]
         })
 
         refresh_token, exp = create_refresh_token({constants.SUB: user_id})
@@ -132,6 +134,7 @@ class UserService:
         payload = verify_refresh_token(refresh_token)
         user_id = payload[constants.SUB]
         token_hash = hash_refresh_token(refresh_token)
+        user = self.user_repository.get_user(user_id)
         
         token = self.refresh_token_repository.get_refresh_token(token_hash)
 
@@ -142,7 +145,8 @@ class UserService:
             raise HTTPException(status_code=401, detail=constants.INVALID_TKN)
         
         access_token = create_access_token({
-            constants.SUB: user_id
+            constants.SUB: user_id,
+            constants.ROLE: user[constants.ROLE]
         })
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)

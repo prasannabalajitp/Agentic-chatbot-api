@@ -7,12 +7,13 @@ class UserRepository:
     def __init__(self):
         self.collection = users_collection
 
-    def create_user(self, user_id: str, password_hash: str, name: str | None = None,    email: str | None = None):
+    def create_user(self, user_id: str, password_hash: str, name: str | None = None,    email: str | None = None, role: str | None = None):
         document = {
             constants.USER_ID: user_id,
             constants.NAME: name,
             constants.EMAIL: email,
             constants.HASHED_PWD: password_hash,
+            constants.ROLE: role,
             constants.CREATED_AT: datetime.now(timezone.utc)
         }
 
@@ -46,3 +47,16 @@ class UserRepository:
         return self.collection.delete_one(
             {constants.USER_ID: user_id}
         )
+    
+    def update_role(self, user_id: str, role: str):
+        result = self.collection.update_one({
+            constants.USER_ID: user_id
+        },{
+            constants.SET: {
+                constants.ROLE: role
+            }
+        })
+        return {
+            constants.MATCHED: result.matched_count,
+            constants.MODIFIED: result.modified_count
+        }
