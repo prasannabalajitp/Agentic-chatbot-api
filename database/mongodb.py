@@ -19,3 +19,7 @@ checkpoints_collection: Collection = db[constants.CHECKPOINTS]
 checkpoint_writes_collection: Collection = db[constants.CHECKPOINTS_WRITES]
 
 refresh_tokens_collection: Collection = db[constants.REF_TKN]
+
+file_collection: Collection = db[constants.FILE]
+
+file_vector_collection: Collection = db[constants.FILE_VECTORS]

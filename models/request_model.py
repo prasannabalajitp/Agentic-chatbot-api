@@ -1,4 +1,6 @@
 from pydantic import BaseModel, Field
+from fastapi import File, UploadFile, Form
+from dataclasses import dataclass
 from core.constants import constants
 
 class CreateUserRequest(BaseModel):
@@ -35,3 +37,8 @@ class LogoutRequest(BaseModel):
 
 class AdminUpdateRole(BaseModel):
     role: str
+
+@dataclass
+class FileRequest(BaseModel):
+    thread_id: str
+    file: UploadFile = File(...)

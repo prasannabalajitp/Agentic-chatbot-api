@@ -1,138 +1,231 @@
 class Constants:
-    USERS = "users"
-    THREADS = "threads"
-    CONVERSATIONS = "conversations"
-    CHECKPOINTS = "checkpoints"
-    CHECKPOINTS_WRITES = "checkpoint_writes"
-    AUTH = "Authentication"
-    REF_TKN = "refresh_tokens"
 
+    #users.py
+    USERS = "users"
+
+
+    #auth.py
+    AUTH = "Authentication"
+
+
+    #message.py
+    NO = "no"
+    CONN = "Connection"
     MESSAGES = "messages"
+    NO_CACHE = "no-cache"
+    KEEP_ALIVE = "keep-alive"
+    CACHE_CONTROL = "Cache-Control"
+    MEDIA_TYPE = "text/event-stream"
+    BUFFERING = "X-Accel-Buffering"
+    
+
+    #mongodb.py
+    FILE = "file"
+    THREADS = "threads"
+    REF_TKN = "refresh_tokens"
+    CHECKPOINTS = "checkpoints"
+    FILE_VECTORS = "file_vectors"
+    CONVERSATIONS = "conversations"
+    CHECKPOINTS_WRITES = "checkpoint_writes"
+
+
+    #user_repository.py
     NAME = "name"
-    RESULTS = "results"
     EMAIL = "email"
+    MATCHED = "matched"
+    HASHED_PWD = "hashed_password"
+
+
+    #weather_service.py
+    RESULTS = "results"
+
+
+    #chatbot_graph.py
     TOOLS = "tools"
     CHATBOT = "chatbot"
+    USER_ID = "user_id"
+    THREAD_ID = "thread_id"
+    CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
 
-    THREAD_ID = "thread_id"
-    DEFAULT_TITLE = "New Conversation"
+
+    #request_model.py
     USR_QRY = "User query"
-    USER_ID = "user_id"
-    TITLE = "title"
-    MSG_COUNT = "message_count"
-    CREATED_AT = "created_at"
-    UPDATED_AT = "updated_at"
-    LST_MSG_AT = "last_message_at"
+    USR_IDENTIFIER = "User identifier"
+    DEFAULT_TITLE = "New Conversation"
+    CRET_USR_DESC = "Unique user identifier"
+    CONV_IDENTIFIER = "Conversation thread identifier"
+
+
+    #conversation_repository.py
     ID = "_id"
     SET = "$set"
     INC = "$inc"
+    TITLE = "title"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+    MSG_COUNT = "message_count"
+    LST_MSG_AT = "last_message_at"
+    
+
+    #security.py
     EXP = "exp"
-
-    MEDIA_TYPE = "text/event-stream"
-    CACHE_CONTROL = "Cache-Control"
-    NO_CACHE = "no-cache"
-    CONN = "Connection"
-    KEEP_ALIVE = "keep-alive"
-    BUFFERING = "X-Accel-Buffering"
-    NO = "no"
-
-    CONFIGURABLE = "configurable"
-    CHANL_VALUES = "channel_values"
     TYPE = "type"
-    HUMAN = "human"
-    AI = "ai"
-    CONTENT = "content"
-    TOOL_CALLS = "tool_calls"
-
-    CRET_USR_DESC = "Unique user identifier"
-
-    USR_IDENTIFIER = "User identifier"
-    CONV_IDENTIFIER = "Conversation thread identifier"
-    THRD_NOT_FOUND = "Thread not found."
-    USR_NOT_FOUND = "User not found."
-    USR_EXISTS = "User already exists"
-    CONVERSATION_NOT_FOUND = "Conversation not found."
-    PAGE_EXCP = "Page number must be greater than 0"
-    LMT_EXCP = "Limit must be between 1 and 100"
-    CHART_STRT = "chat_start"
-    CHART_MDL_STRT = "chat_model_start"
-    CHART_MDL_END = "chat_model_end"
-    ON_CHAT_MDL_STRM = "on_chat_model_stream"
-    ON_TOOL_START = "on_tool_start"
-    ON_TOOL_END = "on_tool_end"
-
-    QUERY = "query"
-    MDL = "model"
-    STREAMING_MDL = "meta/llama-3.1-8b-instruct"
-
     BCRYPT = "bcrypt"
     ACCESS = "access"
     REFRESH = "refresh"
+    INVALID_TKN = "Invalid or expired token"
+    
+
+    #document_parser_service.py
+    DOT = "."
+    PDF = "pdf"
+    TXT_EXT = ".txt"
+    UTF_EXT = "utf-8"
+    PDF_EXT = ".pdf"
+    DOCX_EXT = ".docx"
+
+
+    #chat_history_service.py
+    AI = "ai"
+    HUMAN = "human"
+    CONTENT = "content"
+    CHANL_VALUES = "channel_values"
+    TOOL_CALLS = "tool_calls"
+
+
+    #admin_service.py
     USER = "user"
     ADM = "admin"
+    MODIFIED = "modified"
+    INVALID_ROLE = "Invalid Role"
+    USR_NOT_FOUND = "User not found."
+    THRD_NOT_FOUND = "Thread not found."
+    USR_DEL_SUC = "User Deleted Successfully."
+    USR_ROL_UPDATED = "User role updated successfully."
+    CONV_DEL_SUC = "Conversation deleted successfully."
+    
 
-    EMPTY_STRING = ""
+    #file_service.py    
+    FILE_NOT_FOUND = "File not found."
+    NO_FILES = "No files found for this user"
+    FILE_DEL_SUC = "File Deleted Successfully."
+
+
+    #user_service.py
+    USR_EXISTS = "User already exists"
+
+
+    #conversation_service.py
     V2 = "v2"
-    EVENT = "event"
+    MDL = "model"
     DATA = "data"
+    TOOL = "tool"
+    ERR = "error"
+    DONE = "done"
+    QUERY = "query"
     CHUNK = "chunk"
+    INPUT = "input"
+    EVENT = "event"
+    MSG = "message"
+    TS = "timestamp"
+    EMPTY_STRING = ""    
+    OUTPUT = "output"
+    ARGS = "arguments"
+    CMPLTD = "completed"
+    RESPONSE = "response"
     LLM_CHUNK = "llm_chunk"
     TOOL_CALL = "tool_call"
-    TOOL = "tool"
-    ARGS = "arguments"
-    INPUT = "input"
-    OUTPUT = "output"
-    TOOL_RESP = "tool_response"
     TOOL_ID = "tool_call_id"
-    RESPONSE = "response"
-    ERR = "error"
-    MSG = "message"
-    DONE = "done"
-    TS = "timestamp"
-    PAGE = "page"
-    LIMIT = "limit"
-    TOTAL = "total"
-    TTL_PAGES = "total_pages"
-    HAS_PREV = "has_previous"
-    HAS_NXT = "has_next"
+    CHART_STRT = "chat_start"
+    ON_TOOL_END = "on_tool_end"
+    TOOL_RESP = "tool_response"
+    FNSH_RESON = "finish_reason"
+    ON_TOOL_START = "on_tool_start"
+    CHART_MDL_END = "chat_model_end"
+    CHART_MDL_STRT = "chat_model_start"
     CONV_ACTY = "conversation_activity"
     CONV_UPDATED = "conversation_updated"
-    FNSH_RESON = "finish_reason"
-    CMPLTD = "completed"
+    ON_CHAT_MDL_STRM = "on_chat_model_stream"
+    LMT_EXCP = "Limit must be between 1 and 100"
+    STREAMING_MDL = "meta/llama-3.1-8b-instruct"
+    PAGE_EXCP = "Page number must be greater than 0"
+    CONVERSATION_NOT_FOUND = "Conversation not found."
+    CONV_HST_SUC = "Conversation history cleared successfully."
+    CONV_TITLE_NAME_EXCP = "Conversation title cannot be empty"
+    CONV_TITLE_EXCP = "Conversation title cannot exceed 100 characters."
+    
+
+    #document_parser_service.py
+    ALLOWED_EXT = {".txt", ".pdf", ".docx"}
+
+    
+    #user_service.py
+    SUB = "sub"
+    PAGE = "page"
     ITEMS = "items"
-    LATITUDE = "latitude"
-    LONGITUDE = "longitude"
+    LIMIT = "limit"
+    TOTAL = "total"
+    HAS_NXT = "has_next"
+    TTL_PAGES = "total_pages"
+    HAS_PREV = "has_previous"
+    LOG_OUT_SUC = "Logged out successfully."
+    LOG_OUT_ALL = "Logged out from all devices."
+    INVALID_UNAME_PWD = "Invalid Username or password"
+
+
+    #weather_service.py
+    BDY = 'body'
+    AUTO = "auto"
+    HREF = 'href'
     CURRENT = "current"
     TIMEZONE = "timezone"
-    AUTO = "auto"
-    BDY = 'body'
-    HREF = 'href'
-    SUB = "sub"
+    LATITUDE = "latitude"
+    LONGITUDE = "longitude"
+    
+
+    #refresh_token_repository.py
     GT = "$gt"
     LT = "$lt"
     EXP_AT = "expires_at"
     TKN_HSH = "token_hash"
     IS_REV = "is_revoked"
-    MODIFIED = "modified"
-    MATCHED = "matched"
-    CONV_DEL_SUC = "Conversation deleted successfully."
-    USR_DEL_SUC = "User Deleted Successfully."
-    LOG_OUT_SUC = "Logged out successfully."
-    LOG_OUT_ALL = "Logged out from all devices."
-    CONV_HST_SUC = "Conversation history cleared successfully."
-    CONV_TITLE_NAME_EXCP = "Conversation title cannot be empty"
-    CONV_TITLE_EXCP = "Conversation title cannot exceed 100 characters."
-    NO_RSLTS_FND = "No search results found."
-    INVALID_TKN = "Invalid or expired token"
-    USR_ROL_UPDATED = "User role updated successfully."
-    FORBIDDEN = "You don't have permission to perform this action."
-    INVALID_ROLE = "Invalid Role"
-    INVLD_TKN = "Invalid token"
-    HASHED_PWD = "hashed_password"
-    ROLE = "role"
-    INVALID_UNAME_PWD = "Invalid Username or password"
+    
 
+    #file_repository.py
+    SIZE = "size"
+    FILE_ID = "file_id"
+    UPLOADED = "uploaded"
+    FILE_STATUS = "status"
+    FILE_NAME = "file_name"
+    CONTENT_TYPE = "content_type"
+    
+
+    #web_search_service.py
+    NO_RSLTS_FND = "No search results found."
+    
+    
+    #dependencies.py
+    ROLE = "role"
+    FORBIDDEN = "You don't have permission to perform this action."
+    
+
+    #ai_search.py
+    NO_REL_DOC = "No relevant documents found."
+
+
+    #embedding_service.py
+    TXT = "text"
+    CHUNK_SIZE = 1000
+    CHUNK_OVERLAP = 200
+    EMBDNG = "embedding"
+    CHUNK_ID = "chunk_id"
+    CHUNK_IDX = "chunk_index"
+    EMB_FAIL = "Failed to generate embeddings"
+    INVALID_TXT = "The uploaded document does not contain extractable text."
+    
+
+    #weather_service.py
     TEMP_VALUES = [
                         "temperature_2m",
                         "relative_humidity_2m",

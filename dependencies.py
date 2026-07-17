@@ -6,17 +6,22 @@ from jose import JWTError
 from common.chatbot_graph import graph
 from core.constants import constants
 from core.security import verify_access_token
-from llm.nvidia_llm import llm, chat_model
+from llm.nvidia_llm import llm
 
 from repository.conversation_repository import ConversationRepository
 from repository.user_repository import UserRepository
 from repository.refresh_token_repository import RefreshTokenRepository
+from repository.file_repository import FileRepository
 
 from service.conversation_service import ConversationService
 from service.user_service import UserService
 from service.weather_service import WeatherService
 from service.web_search_service import WebSearchService
 from service.admin_service import AdminService
+from service.file_service import FileService
+from service.document_parser_service import DocumentParser
+from service.embedding_service import EmbeddingService
+from service.retrieval_service import RetrievalService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="auth/login"
@@ -26,9 +31,15 @@ security = HTTPBearer()
 user_repository = UserRepository()
 conversation_repository = ConversationRepository()
 refresh_tkn_repository = RefreshTokenRepository()
+file_repository = FileRepository()
 
 weather_service = WeatherService()
 websearch_service = WebSearchService()
+document_service = DocumentParser()
+embedding_service = EmbeddingService()
+retrieval_service = RetrievalService()
+file_service = FileService(file_repository=file_repository,document_service=document_service, embedding_service=embedding_service)
+
 
 user_service = UserService(user_repository=user_repository, conversation_repository=conversation_repository, refreshtoken_repository=refresh_tkn_repository)
 
@@ -70,3 +81,4 @@ def require_roles(*allowed_roles):
         return current_user
 
     return role_checker
+

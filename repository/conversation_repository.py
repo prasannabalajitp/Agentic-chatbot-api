@@ -47,7 +47,7 @@ class ConversationRepository:
     
     def get_all_threads(self):
         return list(
-            self.collections.find({}, {"_id": 0})
+            self.collections.find({}, {constants.ID: 0})
         )
 
     def get_user_threads(self, user_id: str, skip: int, limit: int):

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/conversations", tags=[constants.MESSAGES])
 async def create_message(background_tasks: BackgroundTasks,  thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
     response = conversation_service.create_message(
         background_task=background_tasks,
-        user_id=current_user["user_id"],
+        user_id=current_user[constants.USER_ID],
         thread_id=thread_id,
         query=request.query
     )
@@ -27,7 +27,7 @@ async def create_message(background_tasks: BackgroundTasks,  thread_id: str, req
 async def create_stream_message(thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
     return StreamingResponse(
         conversation_service.stream_message(
-            user_id=current_user["user_id"],
+            user_id=current_user[constants.USER_ID],
             thread_id=thread_id,
             query=request.query
         ),
@@ -43,6 +43,6 @@ async def create_stream_message(thread_id: str, request: ChatRequest, current_us
 @router.get("/{thread_id}/messages")
 async def get_messages(thread_id: str, current_user = Depends(get_current_user)):
     return conversation_service.get_messages(
-        user_id=current_user["user_id"],
+        user_id=current_user[constants.USER_ID],
         thread_id=thread_id
     )

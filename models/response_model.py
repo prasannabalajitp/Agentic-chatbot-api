@@ -54,3 +54,9 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "Bearer"
+
+class CreateFileResponse(BaseModel):
+    file_id: str
+    thread_id: str
+    created_at: str
+    file_name: str

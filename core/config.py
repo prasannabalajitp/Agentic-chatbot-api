@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
-    NVIDIA_API_KEY=os.getenv("API_KEY")
+    NVIDIA_API_KEY=os.getenv("NVIDIA_API_KEY")
     MODEL_NAME=os.getenv("MODEL")
+    EMBEDDING_MODEL=os.getenv("EMBEDDING_MODEL")
     BASE_URL = os.getenv("BASE_URL")
 
     MONGODB_URI = os.getenv("MONGODB_URI")

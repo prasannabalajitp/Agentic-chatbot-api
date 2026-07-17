@@ -64,7 +64,7 @@ class ConversationService:
                 detail=constants.CONVERSATION_NOT_FOUND
             )
 
-        config = create_graph_config(thread_id)
+        config = create_graph_config(user_id, thread_id)
 
         result = self.graph.invoke(
             {
@@ -93,7 +93,7 @@ class ConversationService:
                 detail=constants.CONVERSATION_NOT_FOUND
             )
     
-        config = create_graph_config(thread_id)
+        config = create_graph_config(user_id, thread_id)
         yield sse_event(constants.CHART_STRT, {
                 constants.USER_ID: user_id,
                 constants.THREAD_ID: thread_id,
