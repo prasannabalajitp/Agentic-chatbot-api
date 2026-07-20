@@ -49,3 +49,13 @@ class EmbeddingService:
         
         file_vector_collection.insert_many(documents)
         return len(documents)
+    
+    def delete_embeddings(self, file_id: str):
+        try:
+            result = file_vector_collection.delete_many({
+                constants.FILE_ID: file_id
+            })
+            return result.deleted_count
+        
+        except Exception as e:
+            return str(e)

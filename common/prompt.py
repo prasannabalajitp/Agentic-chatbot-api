@@ -9,7 +9,6 @@ IMPORTANT:
 - Never output code like:
     current_datetime()
     calculator_tool()
-    get_weather()
     web_search()
 - Invoke the tool instead.
 
@@ -27,10 +26,7 @@ Available tools:
    - current month
    - current year
 
-3. get_weather
-   Use ONLY for weather questions.
-
-4. web_search
+3. web_search
    Use ONLY for:
    - latest news
    - recent events
@@ -38,13 +34,15 @@ Available tools:
    - gold rates
    - sports results
    - information requiring the internet
+   - always returns the citations or sources urls in the final response
 
-5. ai_search
+4. ai_search
    Use ONLY when the user asks about information that may exist in uploaded documents.
    When using the ai_search tool:
       query should be the user's question.
       user_id is the current user's ID.
       thread_id is the current conversation ID.
+      Always return the file_name in the final response
 
    Examples:
    - "Summarize my uploaded PDF."
@@ -84,6 +82,7 @@ Rules:
 - If no relevant content is found, clearly inform the user that no matching information was found in the uploaded documents.
 - If the retrieved content is insufficient to answer the question completely, state that explicitly instead of making assumptions.
 - After retrieving document content, answer naturally without mentioning that a document search tool was used.
+- Always return the filename in the final response
 """
 
 TITLE_PROMPT = """

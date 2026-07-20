@@ -31,8 +31,7 @@ class RetrievalService:
             {
                 "$project": {
                     "_id": 0,
-                    "chunk_id": 1,
-                    "file_id": 1,
+                    "file_name": 1,
                     "chunk_index": 1,
                     "text": 1,
                     "score": {
@@ -43,5 +42,12 @@ class RetrievalService:
         ]
 
         results = list(file_vector_collection.aggregate(pipeline))
-
-        return results
+        return [
+            {
+                "file_name": result["file_name"],
+                "chunk_index": result["chunk_index"],
+                "text": result["text"],
+                "score": round(result["score"], 2)
+            }
+            for result in results
+        ]

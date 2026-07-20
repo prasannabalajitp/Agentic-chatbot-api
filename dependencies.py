@@ -15,7 +15,6 @@ from repository.file_repository import FileRepository
 
 from service.conversation_service import ConversationService
 from service.user_service import UserService
-from service.weather_service import WeatherService
 from service.web_search_service import WebSearchService
 from service.admin_service import AdminService
 from service.file_service import FileService
@@ -33,7 +32,6 @@ conversation_repository = ConversationRepository()
 refresh_tkn_repository = RefreshTokenRepository()
 file_repository = FileRepository()
 
-weather_service = WeatherService()
 websearch_service = WebSearchService()
 document_service = DocumentParser()
 embedding_service = EmbeddingService()
@@ -52,7 +50,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         token = credentials.credentials
         payload = verify_access_token(token)
 
-        user_id = payload.get("sub")
+        user_id = payload.get(constants.SUB)
 
         if not user_id:
             raise HTTPException(
@@ -81,4 +79,3 @@ def require_roles(*allowed_roles):
         return current_user
 
     return role_checker
-

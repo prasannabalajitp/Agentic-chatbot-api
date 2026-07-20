@@ -36,10 +36,6 @@ class Constants:
     HASHED_PWD = "hashed_password"
 
 
-    #weather_service.py
-    RESULTS = "results"
-
-
     #chatbot_graph.py
     TOOLS = "tools"
     CHATBOT = "chatbot"
@@ -178,10 +174,22 @@ class Constants:
     BDY = 'body'
     AUTO = "auto"
     HREF = 'href'
+    URL = "url"
+    RESULTS = "results"
     CURRENT = "current"
     TIMEZONE = "timezone"
     LATITUDE = "latitude"
     LONGITUDE = "longitude"
+    TEMP_VALUES = [
+                        "temperature_2m",
+                        "relative_humidity_2m",
+                        "apparent_temperature",
+                        "is_day",
+                        "precipitation",
+                        "rain",
+                        "weather_code",
+                        "wind_speed_10m"
+                    ]
     
 
     #refresh_token_repository.py
@@ -203,6 +211,8 @@ class Constants:
 
     #web_search_service.py
     NO_RSLTS_FND = "No search results found."
+    CNTXT = "context"
+    CITATIONS = "citations"
     
     
     #dependencies.py
@@ -223,19 +233,6 @@ class Constants:
     CHUNK_IDX = "chunk_index"
     EMB_FAIL = "Failed to generate embeddings"
     INVALID_TXT = "The uploaded document does not contain extractable text."
-    
-
-    #weather_service.py
-    TEMP_VALUES = [
-                        "temperature_2m",
-                        "relative_humidity_2m",
-                        "apparent_temperature",
-                        "is_day",
-                        "precipitation",
-                        "rain",
-                        "weather_code",
-                        "wind_speed_10m"
-                    ]
 
 
 constants = Constants()

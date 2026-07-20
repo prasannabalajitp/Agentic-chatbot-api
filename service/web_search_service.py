@@ -5,7 +5,7 @@ class WebSearchService:
     def __init__(self):
         pass
 
-    def search(self, query: str) -> str:
+    def search(self, query: str) -> dict:
         try:
             with DDGS() as ddgs:
                 results = list(
@@ -16,18 +16,34 @@ class WebSearchService:
                 )
 
             if not results:
-                return constants.NO_RSLTS_FND
+                return {
+                    constants.CNTXT: constants.NO_RSLTS_FND,
+                    constants.CITATIONS: []
+                }
 
-            output = []
+            citations = []
+            context = []
 
-            for index, result in enumerate(results, start=1):
-                output.append(
-                    f"{index}. {result[constants.TITLE]}\n"
-                    f"{result[constants.BDY]}\n"
-                    f"{result[constants.HREF]}"
+            for i, r in enumerate(results, 1):
+                citations.append({
+                    constants.TITLE: r[constants.TITLE],
+                    constants.URL: r[constants.HREF],
+                })
+
+                context.append(
+                    f"{i}. {r['title']}\n"
+                    f"{r['body']}\n"
+                    f"Source: {r['href']}"
                 )
             
-            return "\n\n".join(output)
+            data = {
+                constants.CNTXT: "\n\n".join(context),
+                constants.CITATIONS: citations,
+            }
+            return data
 
         except Exception as ex:
-            return f"Web search failed. {str(ex)}"
+            return {
+                constants.CNTXT: f"Web search failed. {ex}",
+                constants.CITATIONS: [],
+            }

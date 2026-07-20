@@ -13,7 +13,7 @@ from service.chat_history_service import get_chat_history
 from models.response_model import ConversationResponse, ConversationListResponse
 from core.constants import constants
 
-import math
+import math, json
 
 class ConversationService:
 
@@ -108,6 +108,7 @@ class ConversationService:
         )
         
         final_response = constants.EMPTY_STRING
+        tool_citations = []
 
         try:
             async for event in self.graph.astream_events(
@@ -143,14 +144,38 @@ class ConversationService:
             
                 elif event_name == constants.ON_TOOL_END:
                     tool_output = event[constants.DATA][constants.OUTPUT]
+
+                    response = tool_output.content
+                    citations = []
+
+                    try:
+                        payload = json.loads(tool_output.content)
+
+                        if isinstance(payload, dict):
+                            response = payload.get(constants.CNTXT, tool_output.content)
+                            citations = payload.get(constants.CITATIONS, [])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+
+                    if citations:
+                        tool_citations.extend(citations)
                     yield sse_event(
                         constants.TOOL_RESP,
                         {
                             constants.TOOL: tool_output.name,
                             constants.TOOL_ID: tool_output.tool_call_id,
-                            constants.RESPONSE: tool_output.content
+                            constants.RESPONSE: response
                         }
                     )
+
+                    if citations:
+                        yield sse_event(
+                            constants.CITATIONS,
+                            {
+                                constants.TOOL: tool_output.name,
+                                constants.CITATIONS: citations,
+                            },
+                        )
         except Exception as e:
             yield sse_event(
                 constants.ERR,
@@ -193,6 +218,7 @@ class ConversationService:
             {
                 constants.THREAD_ID: thread_id,
                 constants.RESPONSE: final_response,
+                constants.CITATIONS: tool_citations,
                 constants.TS: str(datetime.now(timezone.utc).isoformat()),
                 constants.MSG_COUNT: conversation[constants.MSG_COUNT] if conversation[constants.MSG_COUNT] else 0,
                 constants.FNSH_RESON: constants.CMPLTD

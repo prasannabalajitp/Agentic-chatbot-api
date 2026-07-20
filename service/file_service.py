@@ -23,7 +23,6 @@ class FileService:
             content_type=file.content_type,
             file_size=file.size if hasattr(file, constants.SIZE) else None,
         )
-
         self.embedding_service.index_document(
             user_id=user_id,
             thread_id=thread_id,
@@ -65,6 +64,8 @@ class FileService:
         )
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail=constants.FILE_NOT_FOUND)
+        
+        self.embedding_service.delete_embeddings(file_id)
         return {
             constants.MSG: constants.FILE_DEL_SUC
         }

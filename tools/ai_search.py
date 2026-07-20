@@ -24,7 +24,15 @@ def ai_search(query: str, user_id: str,thread_id: str):
     if not documents:
         return constants.NO_REL_DOC
     
-    return "\n\n".join(
-        doc[constants.TXT]
-        for doc in documents
-    )
+    context = []
+    
+    for doc in documents:
+        context.append(
+            f"""File: {doc['file_name']}
+            Chunk: {doc['chunk_index']}
+            Score: {doc['score']:.2f}
+
+            {doc['text']}
+            """
+                )
+    return "\n\n---\n\n".join(context)
