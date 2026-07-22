@@ -1,7 +1,9 @@
 from langchain.tools import tool
+from tools.decorator import register_tool
+from core.constants import constants
 from numexpr import evaluate
 
-
+@register_tool(name=constants.CALC, category=constants.UTLTY)
 @tool(parse_docstring=True)
 def calculator_tool(expr: str) -> str:
     """

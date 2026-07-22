@@ -23,7 +23,7 @@ class DocumentParser:
         
         if extension == constants.PDF_EXT:
             pdf = fitz.open(stream=content, filetype=constants.PDF)
-            text = ""
+            text = constants.EMPTY_STRING
             for page in pdf:
                 text += page.get_text()
 

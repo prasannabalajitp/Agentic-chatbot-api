@@ -12,6 +12,7 @@ from repository.conversation_repository import ConversationRepository
 from service.chat_history_service import get_chat_history
 from models.response_model import ConversationResponse, ConversationListResponse
 from core.constants import constants
+from core.config import settings
 
 import math, json
 
@@ -45,16 +46,19 @@ class ConversationService:
     
     def rename_conversation_if_needed(self, thread_id: str, query: str):
 
-        conversation = self.conversation_repository.get_thread(thread_id)
-        if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
-            return
+        try:
+            conversation = self.conversation_repository.get_thread(thread_id)
+            if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
+                return
 
-        title = self.generate_conversation_title(query=query)
+            title = self.generate_conversation_title(query=query)
 
-        self.conversation_repository.update_thread_title(
-            thread_id=thread_id,
-            title=title
-        )
+            self.conversation_repository.update_thread_title(
+                thread_id=thread_id,
+                title=title
+            )
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to generate title")
 
     def create_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
 
@@ -86,7 +90,7 @@ class ConversationService:
         )
         return response
     
-    async def stream_message(self, user_id: str, thread_id: str, query: str):
+    async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
             raise HTTPException(
                 status_code=404,
@@ -103,7 +107,7 @@ class ConversationService:
         yield sse_event(
             constants.CHART_MDL_STRT,
             {
-                constants.MDL: constants.STREAMING_MDL
+                constants.MDL: settings.MODEL_NAME
             }
         )
         
@@ -195,21 +199,16 @@ class ConversationService:
         )
         conversation = self.conversation_repository.get_thread(thread_id=thread_id)
 
-        if conversation[constants.TITLE] == constants.DEFAULT_TITLE:
-            title = self.generate_conversation_title(query=query)
-            self.conversation_repository.update_thread_title(thread_id=thread_id, title=title)
-            yield sse_event(
-                constants.CONV_UPDATED,
-                {
-                    constants.THREAD_ID: thread_id,
-                    constants.TITLE: title
-                }
-            )
+        background_task.add_task(
+            self.rename_conversation_if_needed,
+            thread_id,
+            query,
+        )
         
         yield sse_event(
             constants.CHART_MDL_END,
             {
-                constants.MDL: constants.STREAMING_MDL
+                constants.MDL: settings.MODEL_NAME
             }
         )
 

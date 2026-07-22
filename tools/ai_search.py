@@ -1,12 +1,15 @@
 from langchain.tools import tool
+from tools.decorator import register_tool
 from service.retrieval_service import RetrievalService
+from langchain_core.runnables import RunnableConfig
 
 from core.constants import constants
 
 retrieval_service = RetrievalService()
 
+@register_tool(name=constants.AI_SRCH, category=constants.UTLTY)
 @tool
-def ai_search(query: str, user_id: str,thread_id: str):
+def ai_search(query: str, config: RunnableConfig):
     """
     Search uploaded documents.
 
@@ -18,6 +21,11 @@ def ai_search(query: str, user_id: str,thread_id: str):
     Returns:
         Relevant document chunks.
     """
+
+    configurable = config.get(constants.CONFIGURABLE, {})
+
+    user_id = configurable[constants.USER_ID]
+    thread_id = configurable[constants.THREAD_ID]
 
     documents = retrieval_service.retrieve(query=query, user_id=user_id, thread_id=thread_id)
 

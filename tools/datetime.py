@@ -1,9 +1,11 @@
 from datetime import datetime
+from tools.decorator import register_tool
 
 from langchain.tools import tool
 from core.constants import constants
 
 
+@register_tool(name=constants.CUR_DT, category=constants.GEN)
 @tool(parse_docstring=True)
 def current_datetime() -> str:
     """

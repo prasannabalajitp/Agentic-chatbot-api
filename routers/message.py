@@ -24,9 +24,10 @@ async def create_message(background_tasks: BackgroundTasks,  thread_id: str, req
     }
 
 @router.post("/{thread_id}/messagse/stream")
-async def create_stream_message(thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
+async def create_stream_message(background_task: BackgroundTasks, thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
     return StreamingResponse(
         conversation_service.stream_message(
+            background_task=background_task,
             user_id=current_user[constants.USER_ID],
             thread_id=thread_id,
             query=request.query

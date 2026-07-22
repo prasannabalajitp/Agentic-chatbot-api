@@ -17,6 +17,10 @@ class Constants:
     CACHE_CONTROL = "Cache-Control"
     MEDIA_TYPE = "text/event-stream"
     BUFFERING = "X-Accel-Buffering"
+
+    #nvidia_llm.py
+    TITLE_MDL = "meta/llama-3.2-3b-instruct"
+    RAG_MDL = "meta/llama-3.3-70b-instruct"
     
 
     #mongodb.py
@@ -38,11 +42,13 @@ class Constants:
 
     #chatbot_graph.py
     TOOLS = "tools"
+    MAX_HISTORY = 10
     CHATBOT = "chatbot"
     USER_ID = "user_id"
     THREAD_ID = "thread_id"
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
+    DUP_ENTRY = "Duplicate tool detected. Ending graph."
 
 
     #request_model.py
@@ -222,6 +228,20 @@ class Constants:
 
     #ai_search.py
     NO_REL_DOC = "No relevant documents found."
+    AI_SRCH = "ai_search"
+    UTLTY = "utility"
+
+    #calculator.py
+    CALC = "calculator"
+
+    #datetime.py
+    CUR_DT = "current datetime"
+
+    #web_search.py
+    WEB_SRCH = "web_search"
+
+    #tool_registry.py
+    GEN = "general"
 
 
     #embedding_service.py
