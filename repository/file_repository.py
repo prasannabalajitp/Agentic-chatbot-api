@@ -60,3 +60,15 @@ class FileRepository:
             constants.FILE_ID: file_id,
             constants.USER_ID: user_id}
         )
+    
+    def has_thread_files(self, user_id: str, thread_id: str) -> bool:
+        return (
+            self.collection.count_documents(
+                {
+                    constants.USER_ID: user_id,
+                    constants.THREAD_ID: thread_id,
+                },
+                limit=1,
+            )
+            > 0
+        )

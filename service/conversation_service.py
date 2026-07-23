@@ -10,6 +10,7 @@ from repository.user_repository import UserRepository
 from repository.conversation_repository import ConversationRepository
 
 from service.chat_history_service import get_chat_history
+from service.guardrail_service import GuardRailService
 from models.response_model import ConversationResponse, ConversationListResponse
 from core.constants import constants
 from core.config import settings
@@ -18,11 +19,12 @@ import math, json
 
 class ConversationService:
 
-    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, graph, llm):
+    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, graph, llm, guardrail_service: GuardRailService):
         self.graph = graph
         self.llm = llm
         self.user_repository = user_repository
         self.conversation_repository = conversation_repository
+        self.guardrails = guardrail_service
     
     def create_conversation(self, user_id: str,   title: str = constants.DEFAULT_TITLE):
         if not self.user_repository.user_exists(user_id=user_id):
@@ -67,8 +69,11 @@ class ConversationService:
                 status_code=404,
                 detail=constants.CONVERSATION_NOT_FOUND
             )
-
+        
+        self.guardrails.validate_prompt(query)
         config = create_graph_config(user_id, thread_id)
+
+
 
         result = self.graph.invoke(
             {
@@ -80,6 +85,8 @@ class ConversationService:
         )
 
         response = result[constants.MESSAGES][-1].content
+
+        response = self.guardrails.validate_response(response)
 
         self.conversation_repository.update_conversation_activity(thread_id=thread_id)
 
@@ -96,6 +103,18 @@ class ConversationService:
                 status_code=404,
                 detail=constants.CONVERSATION_NOT_FOUND
             )
+        
+        try:
+            self.guardrails.validate_prompt(query)
+        except HTTPException as e:
+            yield sse_event(
+                constants.ERR,
+                {
+                    constants.MSG: e.detail
+                }
+            )
+
+            return
     
         config = create_graph_config(user_id, thread_id)
         yield sse_event(constants.CHART_STRT, {
@@ -112,6 +131,7 @@ class ConversationService:
         )
         
         final_response = constants.EMPTY_STRING
+        tool_call_count = 0
         tool_citations = []
 
         try:
@@ -138,6 +158,25 @@ class ConversationService:
                             }
                         )
                 elif event_name == constants.ON_TOOL_START:
+                    tool_call_count += 1
+
+                    tool_name = event[constants.NAME]
+                    try:
+                        self.guardrails.validate_tool(
+                            tool_name=tool_name,
+                            tool_calls=tool_call_count
+                        )
+
+                    except Exception as e:
+                        yield sse_event(
+                            constants.ERR,
+                            {
+                                constants.MSG: e.detail
+                            }
+                        )
+
+                        return
+
                     yield sse_event(
                         constants.TOOL_CALL,
                         {
@@ -211,6 +250,20 @@ class ConversationService:
                 constants.MDL: settings.MODEL_NAME
             }
         )
+        try:
+            final_response = self.guardrails.validate_response(
+                final_response
+            )
+        except Exception as e:
+            yield sse_event(
+                constants.ERR,
+                {
+                    constants.MSG: e.detail
+                }
+            )
+
+            return
+
 
         yield sse_event(
             constants.DONE,

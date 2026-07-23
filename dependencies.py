@@ -21,6 +21,7 @@ from service.file_service import FileService
 from service.document_parser_service import DocumentParser
 from service.embedding_service import EmbeddingService
 from service.retrieval_service import RetrievalService
+from service.guardrail_service import GuardRailService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="auth/login"
@@ -37,13 +38,14 @@ document_service = DocumentParser()
 embedding_service = EmbeddingService()
 retrieval_service = RetrievalService()
 file_service = FileService(file_repository=file_repository,document_service=document_service, embedding_service=embedding_service)
-
+guardrail_service = GuardRailService(llm)
 
 user_service = UserService(user_repository=user_repository, conversation_repository=conversation_repository, refreshtoken_repository=refresh_tkn_repository)
 
-conversation_service = ConversationService(user_repository, conversation_repository, graph, llm)
+conversation_service = ConversationService(user_repository, conversation_repository, graph, llm, guardrail_service)
 
 admin_service = AdminService(user_repository, conversation_repository, refresh_tkn_repository)
+
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:

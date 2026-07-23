@@ -43,11 +43,13 @@ class Constants:
     #chatbot_graph.py
     TOOLS = "tools"
     MAX_HISTORY = 10
+    THINK = "<think>"
     CHATBOT = "chatbot"
     USER_ID = "user_id"
     THREAD_ID = "thread_id"
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
+    RSNG_CNTNT = "reasoning_content"
     DUP_ENTRY = "Duplicate tool detected. Ending graph."
 
 
@@ -228,6 +230,7 @@ class Constants:
 
     #ai_search.py
     NO_REL_DOC = "No relevant documents found."
+    USER_DOC_EMPTY = "No documents have been uploaded for this conversation yet. \nAsk the user to upload one or more documents before searching.\n Do not call ai_search again until documents are available."
     AI_SRCH = "ai_search"
     UTLTY = "utility"
 
@@ -253,6 +256,33 @@ class Constants:
     CHUNK_IDX = "chunk_index"
     EMB_FAIL = "Failed to generate embeddings"
     INVALID_TXT = "The uploaded document does not contain extractable text."
+
+    #prompt_guardrail.py
+    SUSPICIOUS_PATTERNS = [
+        "ignore previous instructions",
+        "system prompt",
+        "developer prompt",
+        "hidden instructions",
+        "tool registry",
+        "internal tool",
+        "reveal prompt",
+        "jailbreak",
+    ]
+    BLOCKED_TERMS = [
+        "system prompt",
+        "api_key",
+        "secret_key",
+        "internal server error",
+        "traceback"
+    ]
+    UNABLE_VALIDATE = "Unable to validate prompt."
+    UNSFE_PRMPT = "Unsafe prompt detected."
+    UNSFE_RESP = "Unsafe response generated."
+    ALLWD = "allowed"
+    REASON = "reason"
+
+    #tool_guardrail.py
+    MNY_TOOL_CALL = "Too many tool calls."
 
 
 constants = Constants()
