@@ -8,6 +8,12 @@ class UserResponse(BaseModel):
     email: str | None = None
     created_at: str | None = None
 
+class AdminUserResponse(BaseModel):
+    user_id: str
+    name: str | None = None
+    email: str | None = None
+    role: str | None = None
+    created_at: str | None = None
 
 class CreateConversationResponse(BaseModel):
     thread_id: str
@@ -46,4 +52,11 @@ class ConversationListResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "Bearer"
+
+class CreateFileResponse(BaseModel):
+    file_id: str
+    thread_id: str
+    created_at: str
+    file_name: str

@@ -1,4 +1,6 @@
 from pydantic import BaseModel, Field
+from fastapi import File, UploadFile, Form
+from dataclasses import dataclass
 from core.constants import constants
 
 class CreateUserRequest(BaseModel):
@@ -26,3 +28,17 @@ class RenameConversatioRequest(BaseModel):
 class LoginRequest(BaseModel):
     user_id: str
     password: str
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+class AdminUpdateRole(BaseModel):
+    role: str
+
+@dataclass
+class FileRequest(BaseModel):
+    thread_id: str
+    file: UploadFile = File(...)

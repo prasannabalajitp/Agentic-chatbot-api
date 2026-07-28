@@ -2,18 +2,21 @@ from fastapi import HTTPException
 
 from repository.user_repository import UserRepository
 from repository.conversation_repository import ConversationRepository
+from repository.refresh_token_repository import RefreshTokenRepository
 
 from models.response_model import UserResponse, TokenResponse
 from core.constants import constants
-from core.security import hash_password, verify_password, create_access_token
+from core.security import hash_password, verify_password, create_access_token, create_refresh_token, hash_refresh_token, verify_refresh_token
 
+from datetime import datetime, timezone
 import math
 
 class UserService:
 
-    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository):
+    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, refreshtoken_repository: RefreshTokenRepository):
         self.user_repository = user_repository
         self.conversation_repository = conversation_repository
+        self.refresh_token_repository = refreshtoken_repository
     
     def create_user(self, user_id: str, password: str, name: str | None = None, email: str | None = None):
         if self.user_repository.user_exists(user_id):
@@ -25,7 +28,8 @@ class UserService:
             user_id=user_id,
             password_hash=password_hash,
             name=name,
-            email=email
+            email=email,
+            role=constants.USER
         )
 
         data = UserResponse(
@@ -39,19 +43,27 @@ class UserService:
     def login(self, user_id: str, password: str):
 
         user = self.user_repository.get_user(user_id)
+
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid Username or password")
-        
+            raise HTTPException(status_code=401, detail=constants.INVALID_UNAME_PWD)
+
         if not verify_password(password, user[constants.HASHED_PWD]):
-            raise HTTPException(status_code=401, detail="Invalid Username or password")
+            raise HTTPException(status_code=401, detail=constants.INVALID_UNAME_PWD)
         
-        token = create_access_token({
-            "sub": user[constants.USER_ID]
+        access_token = create_access_token({
+            constants.SUB: user[constants.USER_ID],
+            constants.ROLE: user[constants.ROLE]
         })
 
-        return TokenResponse(
-            access_token=token
+        refresh_token, exp = create_refresh_token({constants.SUB: user_id})
+        token_hash = hash_refresh_token(refresh_token)
+
+        self.refresh_token_repository.save_refresh_token(
+            user_id=user_id,
+            token_hash=token_hash,
+            expires_at=exp
         )
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
     
     def get_user(self, user_id: str):
@@ -116,4 +128,48 @@ class UserService:
         self.user_repository.delete_user(user_id)
         return {
             constants.MSG: constants.USR_DEL_SUC
+        }
+    
+    def refresh(self, refresh_token: str):
+        payload = verify_refresh_token(refresh_token)
+        user_id = payload[constants.SUB]
+        token_hash = hash_refresh_token(refresh_token)
+        user = self.user_repository.get_user(user_id)
+        
+        token = self.refresh_token_repository.get_refresh_token(token_hash)
+
+        if not token:
+            raise HTTPException(status_code=401, detail=constants.INVALID_TKN)
+        
+        if token[constants.EXP_AT] < datetime.now(timezone.utc).replace(tzinfo=None):
+            raise HTTPException(status_code=401, detail=constants.INVALID_TKN)
+        
+        access_token = create_access_token({
+            constants.SUB: user_id,
+            constants.ROLE: user[constants.ROLE]
+        })
+
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    
+    def logout(self, refresh_token: str):
+        verify_refresh_token(refresh_token)
+        token_hash = hash_refresh_token(refresh_token)
+
+        token = self.refresh_token_repository.get_refresh_token(token_hash)
+        if not token:
+            raise HTTPException(status_code=401, detail=constants.INVALID_TKN)
+        
+        self.refresh_token_repository.revoke_refresh_token(token_hash)
+
+        return {
+            constants.MSG: constants.LOG_OUT_SUC
+        }
+    
+    def logout_all(self, current_user: dict):
+        self.refresh_token_repository.revoke_all_refresh_tokens(
+            current_user[constants.USER_ID]
+        )
+
+        return {
+            constants.MSG: constants.LOG_OUT_ALL
         }

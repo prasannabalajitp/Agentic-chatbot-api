@@ -44,6 +44,11 @@ class ConversationRepository:
             )
             > 0
         )
+    
+    def get_all_threads(self):
+        return list(
+            self.collections.find({}, {constants.ID: 0})
+        )
 
     def get_user_threads(self, user_id: str, skip: int, limit: int):
         conversations = list(self.collections.find(
@@ -93,6 +98,11 @@ class ConversationRepository:
             {
                 constants.THREAD_ID: thread_id
             }
+        )
+    
+    def delete_user_threads(self, user_id:str):
+        return self.collections.delete_many(
+            {constants.USER_ID: user_id}
         )
     
     def reset_conversation(self, thread_id: str):
