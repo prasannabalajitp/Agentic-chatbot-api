@@ -72,3 +72,14 @@ class FileRepository:
             )
             > 0
         )
+    
+    def get_thread_files(self, user_id: str, thread_id: str):
+        return list(
+            self.collection.find({
+                constants.USER_ID: user_id,
+                constants.THREAD_ID: thread_id
+            },
+            {
+                constants.ID: 0
+            }).sort(constants.CREATED_AT, -1)
+        )

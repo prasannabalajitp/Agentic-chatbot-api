@@ -1,8 +1,11 @@
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_core.messages import AIMessage, HumanMessage
 
 from core.config import settings
 from core.constants import constants
 from tools.tool_registry import registry
+
+import json
 
 llm = ChatNVIDIA(
     api_key=settings.NVIDIA_API_KEY,
@@ -35,5 +38,37 @@ def invoke_chat(messages):
         response.content = response.additional_kwargs[constants.RSNG_CNTNT].replace(
             constants.THINK, constants.EMPTY_STRING
         ).strip()
+
+    if isinstance(response, AIMessage) and response.tool_calls:
+
+        current = response.tool_calls[0]
+
+        current_key = (
+            current[constants.NAME],
+            json.dumps(current.get("args", {}), sort_keys=True),
+        )
+
+        previous_key = None
+
+        for msg in reversed(messages):
+            if isinstance(msg, HumanMessage):
+                break
+
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                prev = msg.tool_calls[0]
+
+                previous_key = (
+                    prev["name"],
+                    json.dumps(prev.get("args", {}), sort_keys=True),
+                )
+                break
+
+        if previous_key is not None and current_key == previous_key:
+            response.tool_calls = []
+
+            response.content = (
+                "The requested tool has already been executed. "
+                "Use the previous tool result to answer the user."
+            )
 
     return response

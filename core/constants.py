@@ -230,7 +230,7 @@ class Constants:
 
     #ai_search.py
     NO_REL_DOC = "No relevant documents found."
-    USER_DOC_EMPTY = "No documents have been uploaded for this conversation yet. \nAsk the user to upload one or more documents before searching.\n Do not call ai_search again until documents are available."
+    USER_DOC_EMPTY = "No documents have been uploaded for this conversation yet. \nPlease upload your documents first."
     AI_SRCH = "ai_search"
     UTLTY = "utility"
 
@@ -245,6 +245,9 @@ class Constants:
 
     #tool_registry.py
     GEN = "general"
+
+    #list_uploaded_files.py
+    UPLD_FILES = "list_uploaded_files"
 
 
     #embedding_service.py
