@@ -32,9 +32,18 @@ class DocumentParser:
         
         if extension == constants.DOCX_EXT:
             document = Document(BytesIO(content))
+            text = []
+            # Normal paragraphs
+            for p in document.paragraphs:
+                if p.text.strip():
+                    text.append(p.text.strip())
 
-            return "\n".join(
-                paragraph.text
-                for paragraph in document.paragraphs
-                if paragraph.text.strip()
-            )
+            # Tables
+            for table in document.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            text.append(cell_text)
+
+            return "\n".join(text)
