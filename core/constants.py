@@ -21,6 +21,8 @@ class Constants:
     #nvidia_llm.py
     TITLE_MDL = "meta/llama-3.2-3b-instruct"
     RAG_MDL = "meta/llama-3.3-70b-instruct"
+    REASONING = "reasoning"
+    RSNG_API_FLDS = "_reasoning_api_fields"
     
 
     #mongodb.py
@@ -136,6 +138,7 @@ class Constants:
     EMPTY_STRING = ""    
     OUTPUT = "output"
     ARGS = "arguments"
+    
     CMPLTD = "completed"
     RESPONSE = "response"
     LLM_CHUNK = "llm_chunk"
