@@ -4,7 +4,6 @@ from langchain_core.messages import SystemMessage
 from langchain_core.messages import AIMessage, ToolMessage
 
 from langgraph.prebuilt import ToolNode
-from datetime import datetime
 
 from llm.nvidia_llm import invoke_chat
 from database.checkpointer import checkpointer
@@ -12,6 +11,7 @@ from core.constants import constants
 from tools.tool_registry import registry
 from common.prompt import SYSTEM_PROMPT
 from pprint import pprint
+from copy import deepcopy
 
 
 def custom_tools_condition(state: MessagesState):
@@ -36,33 +36,43 @@ def custom_tools_condition(state: MessagesState):
     return constants.TOOLS
 
 
+def sanitize_ai_message(message: AIMessage):
+    message = deepcopy(message)
+    message.additional_kwargs = {}
+    message.response_metadata = {}
+    message.usage_metadata = None
+    return message
+
 def chatbot(state: MessagesState):
 
-    MAX_HISTORY = 10
+    MAX_HISTORY = 8
 
-    current_datetime = datetime.now().strftime(constants.STRF_TIME)
+    history = []
+    recent_messages = state[constants.MESSAGES][-MAX_HISTORY:]
+    latest_tool_index = None
+
+    for idx in reversed(range(len(recent_messages))):
+        if isinstance(recent_messages[idx], ToolMessage):
+            latest_tool_index = idx
+            break
+    for idx, msg in enumerate(recent_messages):
+        if isinstance(msg, AIMessage):
+            msg = sanitize_ai_message(msg)
+        else:
+            msg = deepcopy(msg)
+
+        if isinstance(msg, ToolMessage):
+            if latest_tool_index is not None and idx != latest_tool_index:
+                continue
+
+        history.append(msg)
+
     messages = [
         SystemMessage(
             content=f"""
-            Today's Date and time : {current_datetime}
-            The above date and time is the current system time.
-            Use it whenever the user asks about:
-
-            - today
-            - yesterday
-            - tomorrow
-            - this week
-            - this month
-            - current
-            - latest
-            - recent
-
-            When deciding whether information from web search is current,
-            compare it against today's date.
-
             {SYSTEM_PROMPT}
         """),
-        *state[constants.MESSAGES][-constants.MAX_HISTORY:]
+        *history
     ]
 
     print("=" * 80)
@@ -77,13 +87,20 @@ def chatbot(state: MessagesState):
     print("\n==========================================\n")
     # response = chat_model.invoke(messages)
     response = invoke_chat(messages)
-    if (not response.content and response.additional_kwargs.get("reasoning_content")):
-        response.content = response.additional_kwargs["reasoning_content"]
-        return response
+    # response.additional_kwargs.clear()
+    # response.response_metadata = {}
+    # response.usage_metadata = None
+    # if (not response.content and response.additional_kwargs.get("reasoning_content")):
+    #     response.content = response.additional_kwargs["reasoning_content"]
+    #     return response
+    if not response.content:
+        response.content = "I couldn't generate final response."
     print(response)
     print(response.tool_calls)
     print(response.additional_kwargs)
     print(response.response_metadata)
+    if isinstance(response, AIMessage):
+        response = sanitize_ai_message(response)
     return {
         constants.MESSAGES: [response]
     }
