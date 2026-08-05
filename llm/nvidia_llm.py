@@ -10,13 +10,15 @@ import json
 llm = ChatNVIDIA(
     api_key=settings.NVIDIA_API_KEY,
     model=settings.MODEL_NAME,
-    temperature=0
+    temperature=0,
+    max_completion_tokens=4096
 )
 
 title_llm = ChatNVIDIA(
     api_key=settings.NVIDIA_API_KEY,
     model=constants.TITLE_MDL,
     temperature=0,
+    max_completion_tokens=2048
 )
 
 rag_llm = ChatNVIDIA(
@@ -34,10 +36,9 @@ def invoke_chat(messages):
 
     response = chat_model.invoke(messages)
 
-    if (not response.content and response.additional_kwargs.get(constants.RSNG_CNTNT)):
-        response.content = response.additional_kwargs[constants.RSNG_CNTNT].replace(
-            constants.THINK, constants.EMPTY_STRING
-        ).strip()
+    response.additional_kwargs.pop(constants.REASONING, None)
+    response.additional_kwargs.pop(constants.RSNG_CNTNT, None)
+    response.additional_kwargs.pop(constants.RSNG_API_FLDS, None)
 
     if isinstance(response, AIMessage) and response.tool_calls:
 
@@ -45,7 +46,7 @@ def invoke_chat(messages):
 
         current_key = (
             current[constants.NAME],
-            json.dumps(current.get("args", {}), sort_keys=True),
+            json.dumps(current.get(constants.ARGS1, {}), sort_keys=True),
         )
 
         previous_key = None
@@ -59,7 +60,7 @@ def invoke_chat(messages):
 
                 previous_key = (
                     prev["name"],
-                    json.dumps(prev.get("args", {}), sort_keys=True),
+                    json.dumps(prev.get(constants.ARGS1, {}), sort_keys=True),
                 )
                 break
 

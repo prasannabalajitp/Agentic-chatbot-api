@@ -22,6 +22,7 @@ class Constants:
     TITLE_MDL = "meta/llama-3.2-3b-instruct"
     RAG_MDL = "meta/llama-3.3-70b-instruct"
     REASONING = "reasoning"
+    ARGS1 = "args"
     RSNG_API_FLDS = "_reasoning_api_fields"
     
 
@@ -281,11 +282,35 @@ class Constants:
         "internal server error",
         "traceback"
     ]
+    ALLOWED_GUARDRAILS = {
+        "NORMAL",
+        "ROLEPLAY",
+        "PROMPT_INJECTION",
+        "SYSTEM_PROMPT_EXTRACTION",
+        "TOOL_MANIPULATION",
+        "JAILBREAK",
+        "DATA_EXFILTRATION",
+    }
+    CATEGORY = "category"
+    CONFIDENCE = "confidence"
+    INVLD_GURDRL_RES = "Invalid guardrail response."
+    UNABLE_CNFDNT_VALIDATE = "Unable to confidently validate prompt."
+    UNBLE_MDL_RES = "Unable to validate model response."
     UNABLE_VALIDATE = "Unable to validate prompt."
-    UNSFE_PRMPT = "Unsafe prompt detected."
+    UNSFE_PRMPT = "Sorry, I can't assist with requests that attempt to access protected system information."
     UNSFE_RESP = "Unsafe response generated."
     ALLWD = "allowed"
     REASON = "reason"
+
+    #retrieval_guardrail.py
+    DNGRS_GUARDRAIL = [
+            "ignore previous instructions",
+            "system prompt",
+            "developer message",
+            "hidden instructions",
+            "disable tools",
+            "jailbreak"
+        ]
 
     #tool_guardrail.py
     MNY_TOOL_CALL = "Too many tool calls."

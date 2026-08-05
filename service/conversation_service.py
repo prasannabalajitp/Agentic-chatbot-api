@@ -8,6 +8,7 @@ from common.sse import sse_event
 
 from repository.user_repository import UserRepository
 from repository.conversation_repository import ConversationRepository
+from repository.file_repository import FileRepository
 
 from service.chat_history_service import get_chat_history
 from service.guardrail_service import GuardRailService
@@ -25,6 +26,7 @@ class ConversationService:
         self.user_repository = user_repository
         self.conversation_repository = conversation_repository
         self.guardrails = guardrail_service
+        self.file_repository = FileRepository()
     
     def create_conversation(self, user_id: str,   title: str = constants.DEFAULT_TITLE):
         if not self.user_repository.user_exists(user_id=user_id):
@@ -61,6 +63,17 @@ class ConversationService:
             )
         except Exception:
             raise HTTPException(status_code=500, detail="Failed to generate title")
+        
+    
+    def create_chat_config(self, user_id: str, thread_id: str):
+        config  = create_graph_config(user_id, thread_id)
+        config[constants.CONFIGURABLE]["uploaded_files"] = (
+            self.file_repository.get_thread_files(
+                user_id=user_id,
+                thread_id=thread_id,
+            )
+        )
+        return config
 
     def create_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
 
@@ -71,7 +84,7 @@ class ConversationService:
             )
         
         self.guardrails.validate_prompt(query)
-        config = create_graph_config(user_id, thread_id)
+        config = self.create_chat_config(user_id, thread_id)
 
 
 
@@ -116,7 +129,14 @@ class ConversationService:
 
             return
     
-        config = create_graph_config(user_id, thread_id)
+        # config = create_graph_config(user_id, thread_id)
+        config = self.create_chat_config(user_id, thread_id)
+        config[constants.CONFIGURABLE]["uploaded_files"] = (
+            self.file_repository.get_thread_files(
+                user_id=user_id,
+                thread_id=thread_id
+            )
+        )
         yield sse_event(constants.CHART_STRT, {
                 constants.USER_ID: user_id,
                 constants.THREAD_ID: thread_id,
