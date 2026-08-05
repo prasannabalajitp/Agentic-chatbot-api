@@ -1,10 +1,12 @@
 from langchain.tools import tool
 from tools.decorator import register_tool
 from service.retrieval_service import RetrievalService
+from service.guardrail_service import GuardRailService
 from repository.file_repository import FileRepository
 from langchain_core.runnables import RunnableConfig
 
 from core.constants import constants
+from guardrails.guardrail_factory import guardrail_service
 
 retrieval_service = RetrievalService()
 file_repository = FileRepository()
@@ -40,6 +42,7 @@ def ai_search(query: str, config: RunnableConfig):
         return constants.NO_REL_DOC
     
     context = []
+
     
     for doc in documents:
         context.append(
@@ -50,4 +53,7 @@ def ai_search(query: str, config: RunnableConfig):
             {doc['text']}
             """
                 )
+    context = guardrail_service.validate_retrieval(
+        context
+    )
     return "\n\n---\n\n".join(context)
