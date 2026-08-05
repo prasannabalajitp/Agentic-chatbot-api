@@ -43,17 +43,13 @@ def ai_search(query: str, config: RunnableConfig):
     
     context = []
 
-    
-    for doc in documents:
-        context.append(
-            f"""File: {doc['file_name']}
-            Chunk: {doc['chunk_index']}
-            Score: {doc['score']:.2f}
+    context = "\n\n---\n\n".join(
+        f"""File: {doc["file_name"]}
+            Chunk: {doc["chunk_index"]}
+            Score: {doc["score"]:.2f}
 
-            {doc['text']}
-            """
+            {doc["text"]}"""
+                    for doc in documents
                 )
-    context = guardrail_service.validate_retrieval(
-        context
-    )
-    return "\n\n---\n\n".join(context)
+    context = guardrail_service.validate_retrieval(context)
+    return context
