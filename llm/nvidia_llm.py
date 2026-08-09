@@ -25,7 +25,6 @@ rag_llm = ChatNVIDIA(
     model=constants.RAG_MDL
 )
 
-chat_model = llm.bind_tools(registry.get_all())
 
 def invoke_chat(messages):
     """
@@ -34,7 +33,7 @@ def invoke_chat(messages):
     additional_kwargs['reasoning_content'] with an empty content.
     """
 
-    response = chat_model.invoke(messages)
+    response = llm.invoke(messages)
 
     response.additional_kwargs.pop(constants.REASONING, None)
     response.additional_kwargs.pop(constants.RSNG_CNTNT, None)

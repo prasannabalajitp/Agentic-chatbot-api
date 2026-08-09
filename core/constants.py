@@ -50,6 +50,8 @@ class Constants:
     CHATBOT = "chatbot"
     USER_ID = "user_id"
     THREAD_ID = "thread_id"
+    PLANNER = "planner"
+    EXECUTOR = "executor"
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
     RSNG_CNTNT = "reasoning_content"
@@ -91,6 +93,8 @@ class Constants:
     UTF_EXT = "utf-8"
     PDF_EXT = ".pdf"
     DOCX_EXT = ".docx"
+    CSV_EXT = ".csv"
+    XLS_EXT = ".xlsx"
 
 
     #chat_history_service.py
@@ -151,6 +155,7 @@ class Constants:
     FNSH_RESON = "finish_reason"
     ON_TOOL_START = "on_tool_start"
     CHART_MDL_END = "chat_model_end"
+    TOOL_EXECUTION = "tool_execution"
     CHART_MDL_STRT = "chat_model_start"
     CONV_ACTY = "conversation_activity"
     CONV_UPDATED = "conversation_updated"
@@ -165,7 +170,7 @@ class Constants:
     
 
     #document_parser_service.py
-    ALLOWED_EXT = {".txt", ".pdf", ".docx"}
+    ALLOWED_EXT = {".txt", ".pdf", ".docx", ".csv", ".xlsx"}
 
     
     #user_service.py
@@ -242,7 +247,7 @@ class Constants:
     CALC = "calculator"
 
     #datetime.py
-    CUR_DT = "current datetime"
+    CUR_DT = "current_datetime"
 
     #web_search.py
     WEB_SRCH = "web_search"
@@ -314,6 +319,10 @@ class Constants:
 
     #tool_guardrail.py
     MNY_TOOL_CALL = "Too many tool calls."
+
+    #executor.py
+    NEED_TOOLS = "needs_tools"
+    PLAN = "plan"
 
 
 constants = Constants()

@@ -1,6 +1,7 @@
 from langchain.tools import tool
 from tools.decorator import register_tool
 from core.constants import constants
+from common.tool_result import ToolResult
 
 from typing import Any
 
@@ -8,7 +9,10 @@ from service.web_search_service import WebSearchService
 
 web_search_service = WebSearchService()
 
-@register_tool(name=constants.WEB_SRCH, category=constants.GEN)
+def web_search_impl(query: str, context=None)->ToolResult:
+    return web_search_service.search(query)
+
+@register_tool(name=constants.WEB_SRCH, handler=web_search_impl, category=constants.GEN)
 @tool
 def web_search(query: str) -> dict[str, Any]:
     """
@@ -20,4 +24,4 @@ def web_search(query: str) -> dict[str, Any]:
     Returns:
         Search results as plain text.
     """
-    return web_search_service.search(query)
+    return web_search_impl(query=query)

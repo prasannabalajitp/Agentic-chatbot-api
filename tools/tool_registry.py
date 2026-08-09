@@ -7,6 +7,7 @@ from typing import Any
 class ToolMetaData:
     name: str
     tool: Any
+    handler: Any
     category: str
     enabled: bool = True
 
@@ -16,10 +17,11 @@ class ToolRegistry:
     def __init__(self):
         self._tools: dict[str, ToolMetaData] = {}
 
-    def register(self, name: str, tool: Any, category: str = constants.GEN, enabled: bool = True) -> None:
+    def register(self, name: str, tool: Any, handler: Any, category: str = constants.GEN, enabled: bool = True) -> None:
         self._tools[name] = ToolMetaData(
             name=name,
             tool=tool,
+            handler=handler,
             category=category,
             enabled=enabled
         )
@@ -31,10 +33,19 @@ class ToolRegistry:
             for tool in self._tools.values()
             if tool.enabled
         ]
-    
-    def get(self, name: str):
+
+    def get_tool(self, name: str):
         metadata = self._tools.get(name)
         return metadata.tool if metadata else None
+    # def get(self, name: str):
+    #     metadata = self._tools.get(name)
+    #     return metadata.tool if metadata else None
+    def get_metadata(self, name: str):
+        return self._tools.get(name)
+    
+    def get_handler(self, name: str):
+        metadata = self._tools.get(name)
+        return metadata.handler if metadata else None
     
     def list(self) -> list[ToolMetaData]:
         return list(self._tools.values())

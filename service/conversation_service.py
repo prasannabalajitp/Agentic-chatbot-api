@@ -16,7 +16,7 @@ from models.response_model import ConversationResponse, ConversationListResponse
 from core.constants import constants
 from core.config import settings
 
-import math, json
+import math
 
 class ConversationService:
 
@@ -92,7 +92,13 @@ class ConversationService:
             {
                 constants.MESSAGES: [
                     HumanMessage(content=query)
-                ]
+                ],
+                "user_id": user_id,
+                "thread_id": thread_id,
+                "current_step": 0,
+                "tool_results": [],
+                "citations": [],
+                "reflection": None,
             },
             config=config
         )
@@ -108,7 +114,10 @@ class ConversationService:
             thread_id,
             query
         )
-        return response
+        return {
+            "response": response,
+            "citations": result.get("citations", []),
+        }
     
     async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
@@ -131,12 +140,6 @@ class ConversationService:
     
         # config = create_graph_config(user_id, thread_id)
         config = self.create_chat_config(user_id, thread_id)
-        config[constants.CONFIGURABLE]["uploaded_files"] = (
-            self.file_repository.get_thread_files(
-                user_id=user_id,
-                thread_id=thread_id
-            )
-        )
         yield sse_event(constants.CHART_STRT, {
                 constants.USER_ID: user_id,
                 constants.THREAD_ID: thread_id,
@@ -152,21 +155,39 @@ class ConversationService:
         
         final_response = constants.EMPTY_STRING
         tool_call_count = 0
-        tool_citations = []
 
         try:
             async for event in self.graph.astream_events(
                 {
                     constants.MESSAGES: [
                         HumanMessage(content=query)
-                    ]
+                    ],
+                    "user_id": user_id,
+                    "thread_id": thread_id,
+                    "current_step": 0,
+                    "tool_results": [],
+                    "citations": [],
+                    "reflection": None,
                 },
                 config=config,
                 version=constants.V2
             ):
                 event_name = event[constants.EVENT]
-
+                if (
+                    event_name == "on_chain_end"
+                    and event["name"] == "executor"
+                ):
+                    executor_output = event["data"]["output"]
+                    yield sse_event(
+                        constants.TOOL_EXECUTION,
+                        {
+                            "tool_results": executor_output.get("tool_results", []),
+                            "citations": executor_output.get("citations", []),
+                        }
+                    )
                 if event_name == constants.ON_CHAT_MDL_STRM:
+                    if event["metadata"].get("langgraph_node") != "chatbot":
+                        continue
                     chunk = event[constants.DATA][constants.CHUNK]
 
                     if chunk.content:
@@ -204,41 +225,17 @@ class ConversationService:
                             constants.ARGS: event[constants.DATA].get(constants.INPUT, {})
                         }
                     )
-            
+
                 elif event_name == constants.ON_TOOL_END:
                     tool_output = event[constants.DATA][constants.OUTPUT]
-
-                    response = tool_output.content
-                    citations = []
-
-                    try:
-                        payload = json.loads(tool_output.content)
-
-                        if isinstance(payload, dict):
-                            response = payload.get(constants.CNTXT, tool_output.content)
-                            citations = payload.get(constants.CITATIONS, [])
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-
-                    if citations:
-                        tool_citations.extend(citations)
                     yield sse_event(
                         constants.TOOL_RESP,
                         {
                             constants.TOOL: tool_output.name,
                             constants.TOOL_ID: tool_output.tool_call_id,
-                            constants.RESPONSE: response
-                        }
+                            constants.RESPONSE: tool_output.content,
+                        },
                     )
-
-                    if citations:
-                        yield sse_event(
-                            constants.CITATIONS,
-                            {
-                                constants.TOOL: tool_output.name,
-                                constants.CITATIONS: citations,
-                            },
-                        )
         except Exception as e:
             yield sse_event(
                 constants.ERR,
@@ -270,6 +267,7 @@ class ConversationService:
                 constants.MDL: settings.MODEL_NAME
             }
         )
+
         try:
             final_response = self.guardrails.validate_response(
                 final_response
@@ -290,10 +288,9 @@ class ConversationService:
             {
                 constants.THREAD_ID: thread_id,
                 constants.RESPONSE: final_response,
-                constants.CITATIONS: tool_citations,
                 constants.TS: str(datetime.now(timezone.utc).isoformat()),
                 constants.MSG_COUNT: conversation[constants.MSG_COUNT] if conversation[constants.MSG_COUNT] else 0,
-                constants.FNSH_RESON: constants.CMPLTD
+                constants.FNSH_RESON: constants.CMPLTD,
             }
         )
 

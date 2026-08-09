@@ -1,9 +1,25 @@
 from langchain.tools import tool
 from tools.decorator import register_tool
 from core.constants import constants
+from common.tool_result import ToolResult
 from numexpr import evaluate
 
-@register_tool(name=constants.CALC, category=constants.UTLTY)
+def calculator_impl(expr: str, context=None)->ToolResult:
+    try:
+        result = evaluate(expr)
+        return {
+            "summary": str(result),
+            "citations": [],
+            "metadata": {}
+        }
+    except Exception as ex:
+        return {
+            "summary": str(ex),
+            "citations": [],
+            "metadata": {},
+        }
+
+@register_tool(name=constants.CALC, handler=calculator_impl, category=constants.UTLTY)
 @tool(parse_docstring=True)
 def calculator_tool(expr: str) -> str:
     """
@@ -15,10 +31,4 @@ def calculator_tool(expr: str) -> str:
     Returns:
         The evaluated result as a string.
     """
-    try:
-        result = evaluate(expr)
-
-        return str(result)
-    
-    except Exception as e:
-        return str(e)
+    return calculator_impl(expr=expr)
