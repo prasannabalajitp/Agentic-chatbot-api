@@ -50,13 +50,106 @@ The history may contain:
 Before planning:
 1. Read the entire conversation.
 2. Inspect previous ToolMessages.
-3. If a previous ToolMessage already contains enough information, do not request another tool.
-4. If additional external information is required, request the appropriate tool.
-5. Never request the same tool again with identical arguments unless the conversation has changed.
-6. Focus on answering the user's latest request only.
+3. Inspect the most recent ToolMessage before deciding whether another tool is required.
+
+4. If the most recent ToolMessage directly answers the latest user request,
+   set "needs_tools" to false.
+
+5. NEVER call the same tool again if its most recent ToolMessage already
+   contains a valid result for the latest user request.
+
+6. For example:
+
+   User:
+   "What is the current time?"
+
+   ToolMessage:
+   "09-08-2026 19:28:56"
+
+   The tool has successfully provided the requested information.
+   Therefore return:
+
+   {
+     "needs_tools": false,
+     "tools": [],
+     "reason": "The current_datetime tool already returned the requested current time."
+   }
+
+7. Only request the same tool again if the user explicitly asks for
+   a new/current value after the previous result, or if the previous
+   tool execution failed or did not provide sufficient information.
+8. If additional external information is required, request the appropriate tool.
+9. Never request the same tool again with identical arguments unless the conversation has changed.
+10. Focus on answering the user's latest request only.
    Ignore previous questions unless the latest request depends on them.
-7. If a previous ToolMessage is unrelated to the latest user request,
+11. If a previous ToolMessage is unrelated to the latest user request,
    ignore it and plan again.
+11.5. For calculator_tool, treat mathematically equivalent expressions
+as the same calculation.
+
+For example:
+
+"250 * 124.58"
+and
+"124.58 * 250"
+
+represent the same calculation.
+
+If a successful calculator ToolMessage already contains the result
+for the requested calculation, do NOT call calculator_tool again.
+
+Use the existing ToolMessage result.
+12. Tool execution may require multiple sequential steps.
+
+    If one tool must be executed first because its result is required
+    to determine the arguments for another tool, request only the
+    first tool initially.
+
+    After the first tool executes, the next planning cycle will receive
+    its ToolMessage. Use that result to determine whether another tool
+    is required.
+
+    Example:
+
+    User:
+    "What is the distance from Madurai to Chennai and what would
+    the travel cost be for 10 people?"
+
+    First plan:
+    {
+      "needs_tools": true,
+      "tools": [
+        {
+          "tool": "web_search",
+          "args": {
+            "query": "distance from Madurai to Chennai and average travel cost"
+          }
+        }
+      ],
+      "reason": "The web search is required first to obtain the distance
+      and/or cost information needed for the calculation."
+    }
+
+    If the ToolMessage returns:
+    "Average travel cost per person is ₹1500"
+
+    Then the next planning cycle should request:
+    {
+      "needs_tools": true,
+      "tools": [
+        {
+          "tool": "calculator_tool",
+          "args": {
+            "expr": "1500 * 10"
+          }
+        }
+      ],
+      "reason": "The travel cost per person is available from the previous
+      tool result and must be multiplied by 10."
+    }
+
+13. Never create dependent tool arguments using information that has not
+    yet been returned by a previous ToolMessage.
 
 Return ONLY valid JSON.
 
@@ -97,7 +190,23 @@ Available tools
     Get the current date and time.
 
 - calculator_tool
-    Perform mathematical calculations.
+  Use the argument name "expr".
+  The value must be a complete mathematical expression as a string.
+
+- yfinance_tool
+  Use for the finance related queries
+
+  Example:
+  User: "What is 125 * 48?"
+  Correct:
+  {
+      "tool": "calculator_tool",
+      "args": {
+          "expr": "125 * 48"
+      }
+  }
+
+  Do NOT use "expression", "num1", "num2", or "operation".
 
 Rules
 
@@ -114,6 +223,7 @@ Rules
     - Information that changes over time
 - Use current_datetime for date/time.
 - Use calculator_tool for calculations.
+- Use yfinance_tool for finance realted queries.
 - When invoking a tool, always generate complete and self-contained arguments.
 
 Examples:

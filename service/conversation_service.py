@@ -138,7 +138,6 @@ class ConversationService:
 
             return
     
-        # config = create_graph_config(user_id, thread_id)
         config = self.create_chat_config(user_id, thread_id)
         yield sse_event(constants.CHART_STRT, {
                 constants.USER_ID: user_id,

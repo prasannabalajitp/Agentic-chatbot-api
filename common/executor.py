@@ -9,13 +9,10 @@ from core.constants import constants
 
 
 def executor(state: AgentState):
-    print("=" * 60)
-    print("EXECUTOR NODE")
 
     plan = state.get(constants.PLAN)
 
     if not plan or not plan.get(constants.NEED_TOOLS, False):
-        print("No tool execution required.")
         return {}
 
     context = {
@@ -27,7 +24,6 @@ def executor(state: AgentState):
     all_citations = []
     all_tool_results = []
     get_all_Tools = registry.get_all()
-    print(f'REGISTRY TOOLS : {get_all_Tools}')
 
     for tool_spec in plan.get(constants.TOOLS, []):
 
@@ -35,9 +31,7 @@ def executor(state: AgentState):
         tool_args = tool_spec.get(constants.ARGS1, {})
 
         handler = registry.get_handler(tool_name)
-
         if handler is None:
-            print(f"Available registry entries: {registry.list()}")
             raise ValueError(f"Unknown tool: {tool_name}")
 
         try:
@@ -97,8 +91,11 @@ def executor(state: AgentState):
             }
         )
 
+    existing_tool_results = state.get("tool_results", [])
+    existing_citations = state.get("citations", [])
+
     return {
         "messages": tool_messages,
-        "citations": all_citations,
-        "tool_results": all_tool_results,
+        "citations": existing_citations + all_citations,
+        "tool_results": existing_tool_results + all_tool_results,
     }

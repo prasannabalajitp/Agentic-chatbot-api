@@ -44,7 +44,10 @@ class Constants:
 
 
     #chatbot_graph.py
+    EXPR = "expr"
+    LEN = "length"
     TOOLS = "tools"
+    SUCC = "success"
     MAX_HISTORY = 10
     THINK = "<think>"
     CHATBOT = "chatbot"
@@ -52,10 +55,14 @@ class Constants:
     THREAD_ID = "thread_id"
     PLANNER = "planner"
     EXECUTOR = "executor"
+    TOOL_RES = "tool_results"
+    CALCULATOR = "calculator"
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
     RSNG_CNTNT = "reasoning_content"
+    ERR_GEN_RES = "I couldn't generate final response."
     DUP_ENTRY = "Duplicate tool detected. Ending graph."
+    EXH_REQ = "Model exhausted completion tokens before producing a final answer."
 
 
     #request_model.py
@@ -242,9 +249,10 @@ class Constants:
     USER_DOC_EMPTY = "No documents have been uploaded for this conversation yet. \nPlease upload your documents first."
     AI_SRCH = "ai_search"
     UTLTY = "utility"
+    SCORE = "score"
 
     #calculator.py
-    CALC = "calculator"
+    CALC = "calculator_tool"
 
     #datetime.py
     CUR_DT = "current_datetime"
@@ -257,6 +265,14 @@ class Constants:
 
     #list_uploaded_files.py
     UPLD_FILES = "list_uploaded_files"
+
+    #yfinance.py
+    YFINANCE = "yfinance_tool"
+
+    #yfinance_service.py
+    LP_PRICE = "lastPrice"
+    PRV_CLS = "previousClose"
+    CURRNCY = "currency"
 
 
     #embedding_service.py

@@ -16,7 +16,7 @@ from common.executor import executor
 from pprint import pprint
 from copy import deepcopy
 from datetime import datetime, timezone
-import json
+import json, time
 
 
 def custom_tools_condition(state: AgentState):
@@ -36,7 +36,7 @@ def custom_tools_condition(state: AgentState):
             current_tool = last_message.tool_calls[0][constants.NAME]
 
             if previous_msg.name == current_tool:
-                print(constants.DUP_ENTRY)
+                raise(constants.DUP_ENTRY)
         
     return constants.TOOLS
 
@@ -52,71 +52,201 @@ def sanitize_ai_message(message: AIMessage):
 
     return message
 
+def normalize_tool_args(tool_name: str, args: dict) -> dict:
+    normalized = deepcopy(args)
+    if tool_name == constants.CALCULATOR:
+        expr = normalized.get(constants.EXPR)
+        if expr:
+            normalized[constants.EXPR] = (
+                expr.replace(" ", "")
+                    .replace("×", "*")
+            )
+    return normalized
+
+
+def get_planner_context(state: AgentState):
+    messages = state[constants.MESSAGES]
+    latest_human_index = None
+
+    for idx in range(len(messages) - 1, -1, -1):
+        if isinstance(messages[idx], HumanMessage):
+            latest_human_index = idx
+            break
+
+    if latest_human_index is None:
+        return []
+
+    context = []
+    previous_messages = messages[
+        max(0, latest_human_index - 2):latest_human_index
+    ]
+    for msg in previous_messages:
+        if isinstance(msg, ToolMessage):
+            continue
+        if isinstance(msg, AIMessage):
+            context.append(sanitize_ai_message(msg))
+        else:
+            context.append(deepcopy(msg))
+    context.append(
+        deepcopy(messages[latest_human_index])
+    )
+    for msg in messages[latest_human_index + 1:]:
+        if isinstance(msg, ToolMessage):
+            context.append(deepcopy(msg))
+    return context
 
 def planner_node(state: AgentState):
 
-    history = state[constants.MESSAGES][-6:]
+    history = get_planner_context(state)
 
     plan = planner.plan(history)
-    result = {
-        "plan": plan
-    }
-
-    return result
-
-def chatbot(state: AgentState):
-    MAX_HISTORY = 8
-
-    history = []
-    recent_messages = state[constants.MESSAGES][-MAX_HISTORY:]
-    latest_tool_index = None
-    current_datetime = datetime.now(timezone.utc).isoformat()
-
-    for idx in reversed(range(len(recent_messages))):
-        if isinstance(recent_messages[idx], ToolMessage):
-            latest_tool_index = idx
-            break
-    for idx, msg in enumerate(recent_messages):
-        if isinstance(msg, AIMessage):
-            msg = sanitize_ai_message(msg)
-        else:
-            msg = deepcopy(msg)
-
-        if isinstance(msg, ToolMessage):
-            if latest_tool_index is not None and idx != latest_tool_index:
+    executed_tools = state.get(constants.TOOL_RES, [])
+    if plan.get(constants.NEED_TOOLS, False):
+        filtered_tools = []
+        for planned_tool in plan.get(constants.TOOLS, []):
+            tool_name = planned_tool.get(constants.TOOL)
+            tool_args = planned_tool.get(constants.ARGS1, {})
+            normalized_args = normalize_tool_args(
+                tool_name,
+                tool_args
+            )
+            already_executed = any(
+                result.get(constants.TOOL) == tool_name
+                and normalize_tool_args(
+                    result.get(constants.TOOL),
+                    result.get(constants.ARGS1, {})
+                ) == normalized_args
+                and result.get(constants.FILE_STATUS) == constants.SUCC
+                for result in executed_tools
+            )
+            if already_executed:
+                print(
+                    f"Skipping duplicate tool call: "
+                    f"{tool_name} {tool_args}"
+                )
                 continue
 
-        history.append(msg)
+            filtered_tools.append(planned_tool)
+        plan[constants.TOOLS] = filtered_tools
+
+        if not filtered_tools:
+            plan[constants.NEED_TOOLS] = False
+            plan[constants.REASON] = (
+                "All requested tool calls have already been executed "
+                "successfully. Use the existing tool results."
+            )
+
+    result = {
+        constants.PLAN: plan
+    }
+    return result
+
+def planner_condition(state: AgentState):
+    plan = state.get(constants.PLAN)
+
+    if not plan:
+        return constants.CHATBOT
+
+    if plan.get(constants.NEED_TOOLS, False):
+        return constants.EXECUTOR
+
+    return constants.CHATBOT
+
+def chatbot(state: AgentState):
+    current_datetime = datetime.now(timezone.utc).isoformat()
+    messages_state = state[constants.MESSAGES]
+    latest_human_index = None
+
+    for idx in range(len(messages_state) - 1, -1, -1):
+        if isinstance(messages_state[idx], HumanMessage):
+            latest_human_index = idx
+            break
+
+    if latest_human_index is None:
+        history = []
+    else:
+        history = []
+
+        previous_messages = messages_state[
+            max(0, latest_human_index - 2):latest_human_index
+        ]
+
+        for msg in previous_messages:
+            if isinstance(msg, ToolMessage):
+                continue
+            if isinstance(msg, AIMessage):
+                history.append(
+                    sanitize_ai_message(msg)
+                )
+            else:
+                history.append(
+                    deepcopy(msg)
+                )
+        history.append(
+            deepcopy(messages_state[latest_human_index])
+        )
+
+        for msg in messages_state[latest_human_index + 1:]:
+            if isinstance(msg, ToolMessage):
+                history.append(
+                    deepcopy(msg)
+                )
 
     messages = [
         SystemMessage(
             content=f"""
-            Current datetime:
-            {current_datetime}
+Current datetime:
+{current_datetime}
 
-            {SYSTEM_PROMPT}
-            """
+{SYSTEM_PROMPT}
+"""
         ),
         *history,
     ]
-
+    print("\n========== MESSAGES SENT TO LLM ==========\n")
     for i, msg in enumerate(messages):
-        print(i, type(msg).__name__, len(str(msg.content)))
-
+        print(
+            i,
+            type(msg).__name__,
+            repr(msg.content)
+        )
+    print("\n==========================================\n")
+    start_time = time.time()
     response = invoke_chat(messages)
+    print(
+        f"CHATBOT LLM TIME : "
+        f"{time.time() - start_time:.2f} seconds"
+    )
     if not response.content:
-        response.content = "I couldn't generate final response."
+        response.content = (
+            constants.ERR_GEN_RES
+        )
 
-    finish_reason = response.response_metadata.get("finish_reason")
-    if finish_reason == "length" and not response.tool_calls:
+    finish_reason = response.response_metadata.get(
+        constants.FNSH_RESON
+    )
+
+    if (
+        finish_reason == constants.LEN
+        and not response.tool_calls
+    ):
         raise RuntimeError(
-            "Model exhausted completion tokens before producing a final answer."
+            constants.EXH_REQ
         )
 
     return {
-        constants.MESSAGES: [sanitize_ai_message(response)]
+        constants.MESSAGES: [
+            sanitize_ai_message(response)
+        ]
     }
 
+def executor_condition(state: AgentState):
+    plan = state.get(constants.PLAN)
+
+    if not plan or not plan.get(constants.NEED_TOOLS, False):
+        return constants.CHATBOT
+
+    return constants.PLANNER
 
 builder = StateGraph(AgentState)
 
@@ -126,8 +256,16 @@ builder.add_node(constants.EXECUTOR, executor)
 tools = registry.get_all()
 
 builder.add_edge(START, constants.PLANNER)
-builder.add_edge(constants.PLANNER, constants.EXECUTOR)
-builder.add_edge(constants.EXECUTOR, constants.CHATBOT)
+builder.add_conditional_edges(
+    constants.PLANNER,
+    planner_condition,
+    {
+        constants.EXECUTOR: constants.EXECUTOR,
+        constants.CHATBOT: constants.CHATBOT,
+    },
+)
+
+builder.add_edge(constants.EXECUTOR, constants.PLANNER)
 
 graph = builder.compile(
     checkpointer=checkpointer
