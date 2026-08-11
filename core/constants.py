@@ -122,6 +122,7 @@ class Constants:
     USR_DEL_SUC = "User Deleted Successfully."
     USR_ROL_UPDATED = "User role updated successfully."
     CONV_DEL_SUC = "Conversation deleted successfully."
+    ROLE_UPDATE_ERR = "You cannot change your own role."
     
 
     #file_service.py    
