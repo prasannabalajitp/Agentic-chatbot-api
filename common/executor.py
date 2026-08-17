@@ -9,7 +9,6 @@ from core.constants import constants
 
 
 def executor(state: AgentState):
-
     plan = state.get(constants.PLAN)
 
     if not plan or not plan.get(constants.NEED_TOOLS, False):
@@ -31,6 +30,7 @@ def executor(state: AgentState):
         tool_args = tool_spec.get(constants.ARGS1, {})
 
         handler = registry.get_handler(tool_name)
+
         if handler is None:
             raise ValueError(f"Unknown tool: {tool_name}")
 
@@ -42,25 +42,25 @@ def executor(state: AgentState):
 
         except Exception as ex:
             result = {
-                "summary": f"Tool '{tool_name}' failed: {str(ex)}",
-                "citations": [],
-                "metadata": {},
+                constants.SUMMARY: f"Tool '{tool_name}' failed: {str(ex)}",
+                constants.CITATIONS: [],
+                constants.METADATA: {},
             }
             all_tool_results.append(
                 {
-                    "tool": tool_name,
-                    "args": tool_args,
-                    "summary": "",
-                    "citations": [],
-                    "metadata": {},
-                    "status": "failed",
-                    "error": str(ex),
+                    constants.TOOL: tool_name,
+                    constants.ARGS1: tool_args,
+                    constants.SUMMARY: "",
+                    constants.CITATIONS: [],
+                    constants.METADATA: {},
+                    constants.FILE_STATUS: "failed",
+                    constants.ERR: str(ex),
                 }
             )
 
             tool_messages.append(
                 ToolMessage(
-                    content=result["summary"],
+                    content=result[constants.SUMMARY],
                     name=tool_name,
                     tool_call_id=f"planner-{uuid4()}",
                 )
@@ -69,33 +69,32 @@ def executor(state: AgentState):
             continue
 
         tool_message = ToolMessage(
-            content=result.get("summary", ""),
+            content=result.get(constants.SUMMARY, constants.EMPTY_STRING),
             name=tool_name,
             tool_call_id=f"planner-{uuid4()}",
         )
-
+        
         tool_messages.append(tool_message)
-
         all_citations.extend(
-            result.get("citations", [])
+            result.get(constants.CITATIONS, [])
         )
 
         all_tool_results.append(
             {
-                "tool": tool_name,
-                "args": tool_args,
-                "summary": result.get("summary", ""),
-                "citations": result.get("citations", []),
-                "metadata": result.get("metadata", {}),
-                "status": "success",
+                constants.TOOL: tool_name,
+                constants.ARGS1: tool_args,
+                constants.SUMMARY: result.get(constants.SUMMARY, ""),
+                constants.CITATIONS: result.get(constants.CITATIONS, []),
+                constants.METADATA: result.get(constants.METADATA, {}),
+                constants.FILE_STATUS: constants.SUCC,
             }
         )
 
-    existing_tool_results = state.get("tool_results", [])
-    existing_citations = state.get("citations", [])
+    existing_tool_results = state.get(constants.TOOL_RES, [])
+    existing_citations = state.get(constants.CITATIONS, [])
 
     return {
-        "messages": tool_messages,
-        "citations": existing_citations + all_citations,
-        "tool_results": existing_tool_results + all_tool_results,
+        constants.MESSAGES: tool_messages,
+        constants.CITATIONS: existing_citations + all_citations,
+        constants.TOOL_RES: existing_tool_results + all_tool_results,
     }

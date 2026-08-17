@@ -78,8 +78,10 @@ class Constants:
     SET = "$set"
     INC = "$inc"
     TITLE = "title"
+    REFL = "reflection"
     CREATED_AT = "created_at"
     UPDATED_AT = "updated_at"
+    CURR_STEP = "current_step"
     MSG_COUNT = "message_count"
     LST_MSG_AT = "last_message_at"
     
@@ -161,12 +163,16 @@ class Constants:
     ON_TOOL_END = "on_tool_end"
     TOOL_RESP = "tool_response"
     FNSH_RESON = "finish_reason"
+    ON_CHAIN_END = "on_chain_end"
     ON_TOOL_START = "on_tool_start"
+    UPLDED_FIELS = "uploaded_files"
+    LNGGRPH_NODE = "langgraph_node"
     CHART_MDL_END = "chat_model_end"
     TOOL_EXECUTION = "tool_execution"
     CHART_MDL_STRT = "chat_model_start"
     CONV_ACTY = "conversation_activity"
     CONV_UPDATED = "conversation_updated"
+    TTL_FAIL = "Failed to generate title"
     ON_CHAT_MDL_STRM = "on_chat_model_stream"
     LMT_EXCP = "Limit must be between 1 and 100"
     STREAMING_MDL = "meta/llama-3.1-8b-instruct"
@@ -340,6 +346,8 @@ class Constants:
     #executor.py
     NEED_TOOLS = "needs_tools"
     PLAN = "plan"
+    SUMMARY = "summary"
+    METADATA = "metadata"
 
 
 constants = Constants()

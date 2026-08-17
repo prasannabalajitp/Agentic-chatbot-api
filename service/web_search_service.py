@@ -17,12 +17,13 @@ class WebSearchService:
 
             if not results:
                 return {
-                    constants.CNTXT: constants.NO_RSLTS_FND,
-                    constants.CITATIONS: []
+                    "summary": constants.NO_RSLTS_FND,
+                    "citations": [],
+                    "metadata": {},
                 }
 
             citations = []
-            context = []
+            summary = []
 
             for i, r in enumerate(results, 1):
                 citations.append({
@@ -30,20 +31,21 @@ class WebSearchService:
                     constants.URL: r[constants.HREF],
                 })
 
-                context.append(
+                summary.append(
                     f"{i}. {r['title']}\n"
-                    f"{r['body']}\n"
-                    f"Source: {r['href']}"
+                    f"{r['body']}"
                 )
             
             data = {
-                constants.CNTXT: "\n\n".join(context),
-                constants.CITATIONS: citations,
+                "summary": "\n\n".join(summary),
+                "citations": citations,
+                "metadata": {},
             }
             return data
 
         except Exception as ex:
             return {
-                constants.CNTXT: f"Web search failed. {ex}",
-                constants.CITATIONS: [],
+                "summary": f"Web search failed. {ex}",
+                "citations": [],
+                "metadata": {},
             }

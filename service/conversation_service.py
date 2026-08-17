@@ -62,12 +62,12 @@ class ConversationService:
                 title=title
             )
         except Exception:
-            raise HTTPException(status_code=500, detail="Failed to generate title")
+            raise HTTPException(status_code=500, detail=constants.TTL_FAIL)
         
     
     def create_chat_config(self, user_id: str, thread_id: str):
         config  = create_graph_config(user_id, thread_id)
-        config[constants.CONFIGURABLE]["uploaded_files"] = (
+        config[constants.CONFIGURABLE][constants.UPLDED_FIELS] = (
             self.file_repository.get_thread_files(
                 user_id=user_id,
                 thread_id=thread_id,
@@ -93,12 +93,12 @@ class ConversationService:
                 constants.MESSAGES: [
                     HumanMessage(content=query)
                 ],
-                "user_id": user_id,
-                "thread_id": thread_id,
-                "current_step": 0,
-                "tool_results": [],
-                "citations": [],
-                "reflection": None,
+                constants.USER_ID: user_id,
+                constants.THREAD_ID: thread_id,
+                constants.CURR_STEP: 0,
+                constants.TOOL_RES: [],
+                constants.CITATIONS: [],
+                constants.REFL: None,
             },
             config=config
         )
@@ -115,8 +115,8 @@ class ConversationService:
             query
         )
         return {
-            "response": response,
-            "citations": result.get("citations", []),
+            constants.RESPONSE: response,
+            constants.CITATIONS: result.get(constants.CITATIONS, []),
         }
     
     async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
@@ -138,6 +138,7 @@ class ConversationService:
 
             return
     
+        # config = create_graph_config(user_id, thread_id)
         config = self.create_chat_config(user_id, thread_id)
         yield sse_event(constants.CHART_STRT, {
                 constants.USER_ID: user_id,
@@ -153,6 +154,7 @@ class ConversationService:
         )
         
         final_response = constants.EMPTY_STRING
+        final_citations = []
         tool_call_count = 0
 
         try:
@@ -161,31 +163,32 @@ class ConversationService:
                     constants.MESSAGES: [
                         HumanMessage(content=query)
                     ],
-                    "user_id": user_id,
-                    "thread_id": thread_id,
-                    "current_step": 0,
-                    "tool_results": [],
-                    "citations": [],
-                    "reflection": None,
+                    constants.USER_ID: user_id,
+                    constants.THREAD_ID: thread_id,
+                    constants.CURR_STEP: 0,
+                    constants.TOOL_RES: [],
+                    constants.CITATIONS: [],
+                    constants.REFL: None,
                 },
                 config=config,
                 version=constants.V2
             ):
                 event_name = event[constants.EVENT]
                 if (
-                    event_name == "on_chain_end"
-                    and event["name"] == "executor"
+                    event_name == constants.ON_CHAIN_END
+                    and event[constants.NAME] == constants.EXECUTOR
                 ):
-                    executor_output = event["data"]["output"]
+                    executor_output = event[constants.DATA][constants.OUTPUT]
+                    final_citations.extend(executor_output.get(constants.CITATIONS, []))
                     yield sse_event(
                         constants.TOOL_EXECUTION,
                         {
-                            "tool_results": executor_output.get("tool_results", []),
-                            "citations": executor_output.get("citations", []),
+                            constants.TOOL_RES: executor_output.get(constants.TOOL_RES, []),
+                            constants.CITATIONS: executor_output.get(constants.CITATIONS, []),
                         }
                     )
                 if event_name == constants.ON_CHAT_MDL_STRM:
-                    if event["metadata"].get("langgraph_node") != "chatbot":
+                    if event[constants.METADATA].get(constants.LNGGRPH_NODE) != constants.CHATBOT:
                         continue
                     chunk = event[constants.DATA][constants.CHUNK]
 
@@ -287,6 +290,7 @@ class ConversationService:
             {
                 constants.THREAD_ID: thread_id,
                 constants.RESPONSE: final_response,
+                constants.CITATIONS: final_citations,
                 constants.TS: str(datetime.now(timezone.utc).isoformat()),
                 constants.MSG_COUNT: conversation[constants.MSG_COUNT] if conversation[constants.MSG_COUNT] else 0,
                 constants.FNSH_RESON: constants.CMPLTD,

@@ -19,9 +19,9 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
 
     if not file_repository.has_thread_files(user_id, thread_id):
         return {
-            "summary": constants.USER_DOC_EMPTY,
-            "citations": [],
-            "metadata": {},
+            constants.SUMMARY: constants.USER_DOC_EMPTY,
+            constants.CITATIONS: [],
+            constants.METADATA: {},
         }
 
     documents = retrieval_service.retrieve(
@@ -32,49 +32,43 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
 
     if not documents:
         return {
-            "summary": constants.NO_REL_DOC,
-            "citations": [],
-            "metadata": {},
+            constants.SUMMARY: constants.NO_REL_DOC,
+            constants.CITATIONS: [],
+            constants.METADATA: {},
         }
 
-    context = "\n\n".join(
-        doc["text"]
+    context_text = "\n\n".join(
+        doc[constants.TXT]
         for doc in documents
     )
 
-    guarded_context = guardrail_service.validate_retrieval(context)
+    guarded_context = guardrail_service.validate_retrieval(context_text)
     return {
-        "summary": guarded_context,
-        "citations": [
+        constants.SUMMARY: guarded_context,
+        constants.CITATIONS: [
             {
-                "file": doc[constants.FILE_NAME],
-                "chunk": doc[constants.CHUNK_IDX],
-                "score": doc[constants.SCORE],
+                constants.FILE: doc[constants.FILE_NAME],
+                constants.CHUNK: doc[constants.CHUNK_IDX],
+                constants.SCORE: doc[constants.SCORE],
             }
             for doc in documents
         ],
-        "metadata": {},
+        constants.METADATA: {},
     }
 
-@register_tool(name=constants.AI_SRCH, handler=ai_search_impl, category=constants.UTLTY)
+@register_tool(name=constants.AI_SRCH,  handler=ai_search_impl, category=constants.UTLTY,)
 @tool
 def ai_search(query: str, config: RunnableConfig):
     """
     Search uploaded documents.
-
-    Args:
-        query: User question.
-        user_id: Current user.
-        thread_id: Current conversation.
-
-    Returns:
-        Relevant document chunks.
     """
 
     configurable = config.get(constants.CONFIGURABLE, {})
-
+    context = {
+        constants.USER_ID: configurable[constants.USER_ID],
+        constants.THREAD_ID: configurable[constants.THREAD_ID],
+    }
     return ai_search_impl(
         query=query,
-        user_id=configurable[constants.USER_ID],
-        thread_id=configurable[constants.THREAD_ID],
+        context=context,
     )

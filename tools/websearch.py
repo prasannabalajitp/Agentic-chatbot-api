@@ -9,8 +9,9 @@ from service.web_search_service import WebSearchService
 
 web_search_service = WebSearchService()
 
-def web_search_impl(query: str, context=None)->ToolResult:
-    return web_search_service.search(query)
+def web_search_impl(query: str, context=None) -> ToolResult:
+    result = web_search_service.search(query)
+    return result
 
 @register_tool(name=constants.WEB_SRCH, handler=web_search_impl, category=constants.GEN)
 @tool
