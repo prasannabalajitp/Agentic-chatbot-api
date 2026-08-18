@@ -11,6 +11,13 @@ web_search_service = WebSearchService()
 
 def web_search_impl(query: str, context=None) -> ToolResult:
     result = web_search_service.search(query)
+
+    print("========== WEB SEARCH IMPLEMENTATION ==========")
+    print("QUERY:", query)
+    print("RESULT:", result)
+    print("SUMMARY:", repr(result.get("summary")))
+    print("===============================================")
+
     return result
 
 @register_tool(name=constants.WEB_SRCH, handler=web_search_impl, category=constants.GEN)

@@ -60,9 +60,19 @@ class Constants:
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
     RSNG_CNTNT = "reasoning_content"
+    MAX_ITR = "Maximum planner iteration reached."
     ERR_GEN_RES = "I couldn't generate final response."
     DUP_ENTRY = "Duplicate tool detected. Ending graph."
     EXH_REQ = "Model exhausted completion tokens before producing a final answer."
+    PLANNER_REASON = (
+                "All requested tool calls have already "
+                "been executed successfully. "
+                "Use the existing tool results."
+            )
+
+    #planner.py
+    EMPTY_CNTNT = "Planner returned empty content"
+    NON_JSON_RESP = "General knowledge; planner returned a non-JSON response."
 
 
     #request_model.py
@@ -280,6 +290,12 @@ class Constants:
     LP_PRICE = "lastPrice"
     PRV_CLS = "previousClose"
     CURRNCY = "currency"
+    SYMB = "symbol"
+    QUOT_TYP = "quoteType"
+    EQTY = "EQUITY"
+    CLS = "Close"
+    DAYS = "5d"
+    TICKER = "ticker"
 
 
     #embedding_service.py

@@ -6,6 +6,7 @@ from common.state import AgentState
 from common.tool_result import ToolResult
 from tools.tool_registry import registry
 from core.constants import constants
+from guardrails.guardrail_factory import guardrail_service
 
 
 def executor(state: AgentState):
@@ -28,6 +29,9 @@ def executor(state: AgentState):
 
         tool_name = tool_spec[constants.TOOL]
         tool_args = tool_spec.get(constants.ARGS1, {})
+
+        # tool_call_count += 1
+        # guardrail_service.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
 
         handler = registry.get_handler(tool_name)
 
@@ -73,7 +77,12 @@ def executor(state: AgentState):
             name=tool_name,
             tool_call_id=f"planner-{uuid4()}",
         )
-        
+        print("========== EXECUTOR RESULT ==========")
+        print("TOOL:", tool_name)
+
+        print("RESULT:", result)
+        print("SUMMARY:", repr(result.get("summary", "")))
+        print("======================================")
         tool_messages.append(tool_message)
         all_citations.extend(
             result.get(constants.CITATIONS, [])

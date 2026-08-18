@@ -11,7 +11,7 @@ llm = ChatNVIDIA(
     api_key=settings.NVIDIA_API_KEY,
     model=settings.MODEL_NAME,
     temperature=0,
-    max_completion_tokens=4096
+    max_completion_tokens=1536
 )
 
 title_llm = ChatNVIDIA(
@@ -19,6 +19,13 @@ title_llm = ChatNVIDIA(
     model=constants.TITLE_MDL,
     temperature=0,
     max_completion_tokens=2048
+)
+
+planner_llm = ChatNVIDIA(
+    api_key=settings.NVIDIA_API_KEY,
+    model=settings.PLANNER_MODEL,
+    temperature=0,
+    max_completion_tokens=512
 )
 
 rag_llm = ChatNVIDIA(

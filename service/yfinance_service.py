@@ -1,100 +1,107 @@
 import yfinance as yf
-
 from core.constants import constants
-
 
 class YFinanceService:
 
     def __init__(self):
         pass
 
-    def _normalize_ticker(self, ticker: str) -> str:
-        """
-        Normalize ticker symbols for Yahoo Finance.
+    def _resolve_ticker(self, ticker: str) -> str:
+        ticker = ticker.strip().upper()
 
-        GOLDBEES is an NSE-listed ETF, so Yahoo Finance uses:
-            GOLDBEES.NS
-        """
+        if constants.DOT in ticker:
+            return ticker
 
-        ticker = ticker.upper().strip()
+        try:
+            search = yf.Search(ticker)
+            quotes = search.quotes
+            if not quotes:
+                return ticker
+            for quote in quotes:
+                symbol = quote.get(constants.SYMB)
+                if symbol and symbol.upper() == ticker:
+                    return symbol
 
-        # Known Indian NSE symbols that are commonly supplied
-        # without the Yahoo Finance suffix.
-        if ticker == "GOLDBEES":
-            return "GOLDBEES.NS"
+            for quote in quotes:
+                if quote.get(constants.QUOT_TYP) == constants.EQTY:
+                    symbol = quote.get(constants.SYMB)
 
-        return ticker
+                    if symbol:
+                        return symbol
+
+            return ticker
+        except Exception:
+            return ticker
 
     def get_quote(self, ticker: str) -> dict:
         try:
             if not ticker:
                 return {
-                    "summary": "No ticker was provided.",
-                    "citations": [],
-                    "metadata": {},
+                    constants.SUMMARY: "No ticker was provided.",
+                    constants.CITATIONS: [],
+                    constants.METADATA: {},
                 }
 
-            ticker = self._normalize_ticker(ticker)
+            resolved_ticker = self._resolve_ticker(ticker)
 
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(resolved_ticker)
 
-            info = stock.fast_info
+            history = stock.history(
+                period=constants.DAYS,
+                auto_adjust=False,
+            )
 
-            last_price = info.get(constants.LP_PRICE)
-            previous_close = info.get(constants.PRV_CLS)
-            currency = info.get(constants.CURRNCY)
-
-            if last_price is None:
+            if history.empty:
                 return {
-                    "summary": (
-                        f"No current price found for {ticker}."
+                    constants.SUMMARY: (
+                        f"No price data found for "
+                        f"{resolved_ticker}."
                     ),
-                    "citations": [
-                        {
-                            constants.TITLE: "Yahoo Finance",
-                            constants.URL:
-                                f"https://finance.yahoo.com/quote/{ticker}/",
-                        }
-                    ],
-                    "metadata": {
-                        "ticker": ticker,
+                    constants.CITATIONS: [],
+                    constants.METADATA: {
+                        constants.TICKER: resolved_ticker,
                     },
                 }
 
-            summary = (
-                f"{ticker} current price: "
-                f"{last_price} {currency or ''}"
-            ).strip()
+            latest = history.iloc[-1]
+
+            last_price = latest[constants.CLS]
+
+            previous_close = (
+                history.iloc[-2][constants.CLS]
+                if len(history) > 1
+                else None
+            )
 
             return {
-                "summary": summary,
-                "citations": [
+                constants.SUMMARY: (
+                    f"{resolved_ticker} current price: "
+                    f"{float(last_price):.2f}"
+                ),
+                constants.CITATIONS: [
                     {
                         constants.TITLE: "Yahoo Finance",
                         constants.URL:
-                            f"https://finance.yahoo.com/quote/{ticker}/",
+                            f"https://finance.yahoo.com/"
+                            f"quote/{resolved_ticker}/",
                     }
                 ],
-                "metadata": {
-                    "ticker": ticker,
+                constants.METADATA: {
+                    constants.TICKER: resolved_ticker,
                     "price": float(last_price),
                     "previous_close": (
                         float(previous_close)
                         if previous_close is not None
                         else None
                     ),
-                    "currency": currency,
                 },
             }
 
         except Exception as ex:
             return {
-                "summary": (
+                constants.SUMMARY: (
                     f"YFinance failed for {ticker}: {str(ex)}"
                 ),
-                "citations": [],
-                "metadata": {},
+                constants.CITATIONS: [],
+                constants.METADATA: {},
             }
-
-    def search(self, ticker: str) -> dict:
-        return self.get_quote(ticker)
