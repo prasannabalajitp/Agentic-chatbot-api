@@ -95,6 +95,12 @@ PLANNING RULES:
     - If a calculation requires the returned price, use calculator_tool
       only after receiving the yfinance result.
 
+11. YouTube/video URL requests:
+    - If the user provides a YouTube/video URL and asks to analyze,
+      summarize, review, or give an opinion about the video, do NOT
+      use list_uploaded_files.
+    - Use web_search with the provided URL.
+
 AVAILABLE TOOLS:
 
 - ai_search
@@ -107,8 +113,8 @@ AVAILABLE TOOLS:
   filenames, or number of uploaded files.
 
 - web_search
-  Use for current/live internet information.
-  Use for general queries.
+  Use for internet information, URLs, YouTube/video links,
+  current/live information, news, weather, travel, etc.
 
 - current_datetime
   Use for current date/time.
@@ -133,6 +139,13 @@ IMPORTANT:
 - No explanation.
 - No reasoning.
 - No text before or after the JSON.
+- The LAST HumanMessage is the current request.
+- Ignore previous HumanMessages when deciding what tool is needed,
+  unless the latest request explicitly refers to them.
+- Previous ToolMessages are only used to determine whether the current
+  request has already been satisfied.
+- Previous AIMessages are context only and must never be treated as
+  tool results
 
 OUTPUT:
 
@@ -141,4 +154,27 @@ If no tool is required:
 
 If a tool is required:
 {"needs_tools":true,"tools":[{"tool":"<tool_name>","args":{}}],"reason":"<short reason>"}
+"""
+
+
+WEB_SEARCH_PROMPT = """
+/no_think
+
+Summarize the search results for the user's query.
+
+Query:
+{query}
+
+Search results:
+{context}
+
+Rules:
+- Answer using only the search results.
+- Be concise.
+- Include the most relevant facts.
+- Do not mention the search process.
+- Do not invent information.
+- If the results are insufficient, say so.
+
+Return only the summary.
 """

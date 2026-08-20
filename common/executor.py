@@ -23,15 +23,17 @@ def executor(state: AgentState):
     tool_messages = []
     all_citations = []
     all_tool_results = []
-    get_all_Tools = registry.get_all()
+    
+    tool_call_count = state.get(constants.TOOL_COUNT, 0)
 
     for tool_spec in plan.get(constants.TOOLS, []):
 
         tool_name = tool_spec[constants.TOOL]
         tool_args = tool_spec.get(constants.ARGS1, {})
 
-        # tool_call_count += 1
-        # guardrail_service.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
+
+        tool_call_count += 1
+        guardrail_service.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
 
         handler = registry.get_handler(tool_name)
 
@@ -106,4 +108,5 @@ def executor(state: AgentState):
         constants.MESSAGES: tool_messages,
         constants.CITATIONS: existing_citations + all_citations,
         constants.TOOL_RES: existing_tool_results + all_tool_results,
+        constants.TOOL_COUNT: tool_call_count
     }

@@ -254,6 +254,8 @@ class Constants:
     NO_RSLTS_FND = "No search results found."
     CNTXT = "context"
     CITATIONS = "citations"
+    HTML_PARSER = "html.parser"
+    BS4_SOUP = ["script", "style", "noscript", "header", "footer", "nav"]
     
     
     #dependencies.py
@@ -360,10 +362,11 @@ class Constants:
     MNY_TOOL_CALL = "Too many tool calls."
 
     #executor.py
-    NEED_TOOLS = "needs_tools"
     PLAN = "plan"
     SUMMARY = "summary"
     METADATA = "metadata"
+    NEED_TOOLS = "needs_tools"
+    TOOL_COUNT = "tool_call_count"
 
 
 constants = Constants()

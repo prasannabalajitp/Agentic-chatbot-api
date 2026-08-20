@@ -3,7 +3,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from core.config import settings
 from core.constants import constants
-from tools.tool_registry import registry
 
 import json
 

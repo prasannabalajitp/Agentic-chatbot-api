@@ -2,7 +2,7 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
 from common.prompt import PLANNER_PROMPT
 from core.constants import constants
-from llm.nvidia_llm import llm
+from llm.nvidia_llm import planner_llm, llm
 import json
 import time
 
@@ -28,8 +28,16 @@ def plan(messages: list[BaseMessage]):
     try:
         return json.loads(content)
     except json.JSONDecodeError as ex:
-        return {
-            constants.NEED_TOOLS: False,
-            constants.TOOLS: [],
-            constants.REASON: constants.NON_JSON_RESP
-        }
+        start = content.find("{")
+        end = content.find("}")
+        if start != -1 and end != -1 and end > start:
+            json_content = content[start:end + 1]
+            try:
+                return json.loads(json_content)
+            except json.JSONDecodeError:
+                pass
+            
+        raise RuntimeError(
+        f"Planner returned invalid JSON: {ex}. "
+        f"Raw content: {content}"
+    )

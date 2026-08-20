@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     user_id: str
     thread_id: str
     current_step: int
+    tool_call_count: int
     tool_results: list[dict[str, Any]]
     citations: list[dict[str, Any]]
     reflection: dict | None
