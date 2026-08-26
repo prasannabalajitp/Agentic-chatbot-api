@@ -7,9 +7,9 @@ from common.tool_result import ToolResult
 
 def date_time_impl(context=None)->ToolResult:
     return {
-        "summary": datetime.now().strftime(constants.STRF_TIME),
-        "citations": [],
-        "metadata": {},
+        constants.SUMMARY: datetime.now().strftime(constants.STRF_TIME),
+        constants.CITATIONS: [],
+        constants.METADATA: {},
     }
 
 

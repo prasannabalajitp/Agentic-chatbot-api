@@ -13,7 +13,9 @@ from common.executor import executor
 from copy import deepcopy
 from datetime import datetime, timezone
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 
 def custom_tools_condition(state: AgentState):
     last_message = state[constants.MESSAGES][-1]
@@ -29,7 +31,7 @@ def custom_tools_condition(state: AgentState):
             current_tool = last_message.tool_calls[0][constants.NAME]
 
             if previous_msg.name == current_tool:
-                print(constants.DUP_ENTRY)
+                logger.info(constants.DUP_ENTRY)
 
     return constants.TOOLS
 
@@ -78,9 +80,9 @@ def get_planner_context(state: AgentState):
     return get_conversation_history(state)
 
 def planner_node(state: AgentState):
-    print("=" * 50)
-    print("PLANNER NODE EXECUTED")
-    print("Incoming state:", state)
+    logger.info("=" * 50)
+    logger.info("PLANNER NODE EXECUTED")
+    logger.info("Incoming state: %s", state)
     current_step = state.get(constants.CURR_STEP, 0)
 
     if current_step >= 3:
@@ -125,10 +127,6 @@ def planner_node(state: AgentState):
             )
 
             if already_executed:
-                print(
-                    f"Skipping duplicate tool call: "
-                    f"{tool_name} {tool_args}"
-                )
                 continue
 
             filtered_tools.append(planned_tool)
@@ -143,7 +141,8 @@ def planner_node(state: AgentState):
         constants.CURR_STEP: current_step
     }
 
-    print(f"Planner Returning : {result}")
+    # logger.info(f"Planner Returning : {result}")
+    logger.info("Planner Returning : %s", result)
     return result
 
 def planner_condition(state: AgentState):
@@ -159,18 +158,18 @@ def planner_condition(state: AgentState):
 
 def chatbot(state: AgentState):
 
-    print("=" * 50)
-    print("CHATBOT STATE KEYS:", state.keys())
-    print("CHATBOT STATE:", state)
+    logger.info("=" * 50)
+    logger.info("CHATBOT STATE KEYS: %s", state.keys())
+    logger.info("CHATBOT STATE: %s", state)
     current_datetime = (datetime.now(timezone.utc).isoformat())
     history = get_conversation_history(state)
 
-    print("\n========== CONVERSATION HISTORY ==========\n")
+    logger.info("\n========== CONVERSATION HISTORY ==========\n")
 
     for i, msg in enumerate(history):
-        print(i,    type(msg).__name__, repr(msg.content))
+        logger.info("%s%s%s", i,type(msg).__name__, repr(msg.content))
 
-    print("\n==========================================\n")
+    logger.info("\n==========================================\n")
 
     tool_context = []
     message_state = state[constants.MESSAGES]
@@ -215,17 +214,14 @@ Current datetime:
                 )
             )
         )
-    print("\n========== MESSAGES SENT TO LLM ==========\n")
+    logger.info("\n========== MESSAGES SENT TO LLM ==========\n")
     for i, msg in enumerate(messages):
-        print(i,type(msg).__name__,repr(msg.content))
+        logger.info("%s %s %s",i,type(msg).__name__,repr(msg.content))
 
-    print("\n==========================================\n")
+    logger.info("\n==========================================\n")
     start_time = time.time()
     response = invoke_chat(messages)
-    print(
-        f"CHATBOT LLM TIME : "
-        f"{time.time() - start_time:.2f} seconds"
-    )
+    logger.info("Chatbot LLM time: %.2f seconds", time.time() - start_time)
 
     if not response.content:
         response.content = (constants.ERR_GEN_RES)

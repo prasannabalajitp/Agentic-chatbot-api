@@ -6,17 +6,20 @@ from common.tool_result import ToolResult
 from typing import Any
 
 from service.web_search_service import WebSearchService
+import logging
+
+logger = logging.getLogger(__name__)
 
 web_search_service = WebSearchService()
 
 def web_search_impl(query: str, context=None) -> ToolResult:
     result = web_search_service.search(query)
 
-    print("========== WEB SEARCH IMPLEMENTATION ==========")
-    print("QUERY:", query)
-    print("RESULT:", result)
-    print("SUMMARY:", repr(result.get("summary")))
-    print("===============================================")
+    logger.info("========== WEB SEARCH IMPLEMENTATION ==========")
+    logger.info("QUERY: %s", query)
+    logger.info("RESULT: %s", result)
+    logger.info("SUMMARY: %s", repr(result.get("summary")))
+    logger.info("===============================================")
 
     return result
 

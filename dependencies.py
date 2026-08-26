@@ -6,7 +6,7 @@ from jose import JWTError
 from common.chatbot_graph import graph
 from core.constants import constants
 from core.security import verify_access_token
-from llm.nvidia_llm import llm
+from llm.nvidia_llm import llm, title_llm
 
 from repository.conversation_repository import ConversationRepository
 from repository.user_repository import UserRepository
@@ -42,7 +42,7 @@ guardrail_service = GuardRailService(llm)
 
 user_service = UserService(user_repository=user_repository, conversation_repository=conversation_repository, refreshtoken_repository=refresh_tkn_repository)
 
-conversation_service = ConversationService(user_repository, conversation_repository, graph, llm, guardrail_service)
+conversation_service = ConversationService(user_repository, conversation_repository, graph, llm, title_llm, guardrail_service)
 
 admin_service = AdminService(user_repository, conversation_repository, refresh_tkn_repository)
 

@@ -17,12 +17,16 @@ from core.constants import constants
 from core.config import settings
 
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ConversationService:
 
-    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, graph, llm, guardrail_service: GuardRailService):
+    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, graph, llm, title_llm, guardrail_service: GuardRailService):
         self.graph = graph
         self.llm = llm
+        self.title_llm = title_llm
         self.user_repository = user_repository
         self.conversation_repository = conversation_repository
         self.guardrails = guardrail_service
@@ -48,9 +52,11 @@ class ConversationService:
         }
         return data
     
-    def rename_conversation_if_needed(self, thread_id: str, query: str):
+    def rename_conversation_if_needed(self, user_id: str, thread_id: str, query: str):
 
         try:
+            if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
+                return
             conversation = self.conversation_repository.get_thread(thread_id)
             if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
                 return
@@ -61,8 +67,9 @@ class ConversationService:
                 thread_id=thread_id,
                 title=title
             )
-        except Exception:
-            raise HTTPException(status_code=500, detail=constants.TTL_FAIL)
+        except Exception as ex:
+            logger.info("Failed to generate conversation title : %s",ex)
+            return
         
     
     def create_chat_config(self, user_id: str, thread_id: str):
@@ -111,6 +118,7 @@ class ConversationService:
 
         background_task.add_task(
             self.rename_conversation_if_needed,
+            user_id,
             thread_id,
             query
         )
@@ -230,6 +238,7 @@ class ConversationService:
 
                 elif event_name == constants.ON_TOOL_END:
                     tool_output = event[constants.DATA][constants.OUTPUT]
+                    logger.info("TOOL OUTPUT")
                     yield sse_event(
                         constants.TOOL_RESP,
                         {
@@ -259,6 +268,7 @@ class ConversationService:
 
         background_task.add_task(
             self.rename_conversation_if_needed,
+            user_id,
             thread_id,
             query,
         )
@@ -311,7 +321,9 @@ class ConversationService:
 
         return get_chat_history(thread_id)
 
-    def get_conversation(self, thread_id: str):
+    def get_conversation(self, user_id: str, thread_id: str):
+        if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
+            raise HTTPException(status_code=404, detail=constants.CONVERSATION_NOT_FOUND)
         conversation = self.conversation_repository.get_thread(thread_id=thread_id)
 
         if not conversation:
@@ -396,8 +408,8 @@ class ConversationService:
                 detail=constants.CONVERSATION_NOT_FOUND
             )
 
-        self.conversation_repository.delete_checkpoints(thread_id)
-        self.conversation_repository.delete_checkpoint_writes(thread_id)
+        self.conversation_repository.delete_thread_checkpoints(thread_id)
+        self.conversation_repository.delete_thread_checkpoint_writes(thread_id)
         self.conversation_repository.reset_conversation(thread_id)
 
         conversation = self.conversation_repository.get_thread(thread_id)
@@ -423,7 +435,7 @@ class ConversationService:
                     )
                 ]
 
-        result = self.llm.invoke(messages)
+        result = self.title_llm.invoke(messages)
         return result.content.strip()
     
     def rename_conversation(self, user_id: str, thread_id: str, title: str):

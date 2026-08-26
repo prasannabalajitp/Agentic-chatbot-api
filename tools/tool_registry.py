@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from core.constants import constants
 from typing import Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,6 +48,8 @@ class ToolRegistry:
     
     def get_handler(self, name: str):
         metadata = self._tools.get(name)
+        logger.info("NAME : %s", name)
+        logger.info("METADATA : %s", metadata)
         return metadata.handler if metadata else None
     
     def list(self) -> list[ToolMetaData]:

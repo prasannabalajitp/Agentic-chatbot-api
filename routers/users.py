@@ -18,11 +18,16 @@ async def create_user(request: CreateUserRequest):
 
 @user_router.get("")
 async def get_user(current_user = Depends(get_current_user)):
-    user_id = current_user["user_id"]
+    user_id = current_user[constants.USER_ID]
     return user_service.get_user(user_id)
 
 
+@user_router.get("/details")
+async def get_user_details(current_user = Depends(get_current_user)):
+    user_id = current_user[constants.USER_ID]
+    return user_service.get_user(user_id)
+
 @user_router.delete("")
 async def delete_user(current_user = Depends(get_current_user)):
-    user_id = current_user["user_id"]
+    user_id = current_user[constants.USER_ID]
     return user_service.delete_user(user_id)

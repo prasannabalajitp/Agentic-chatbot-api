@@ -9,6 +9,10 @@ from langchain_core.runnables import RunnableConfig
 from core.constants import constants
 from guardrails.guardrail_factory import guardrail_service
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 retrieval_service = RetrievalService()
 file_repository = FileRepository()
 
@@ -36,6 +40,14 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             constants.CITATIONS: [],
             constants.METADATA: {},
         }
+
+    for doc in documents:
+        logger.info(
+            "FILE:", doc[constants.FILE_NAME],
+            "CHUNK:", doc[constants.CHUNK_IDX],
+            "SCORE:", doc[constants.SCORE],
+            "LENGTH:", len(doc[constants.TXT])
+        )
 
     context_text = "\n\n".join(
         doc[constants.TXT]

@@ -255,7 +255,7 @@ class Constants:
     CNTXT = "context"
     CITATIONS = "citations"
     HTML_PARSER = "html.parser"
-    BS4_SOUP = ["script", "style", "noscript", "header", "footer", "nav"]
+    BS4_SOUP = ["script", "style", "noscript", "header", "footer", "nav", "aside", "form", "svg", "iframe"]
     
     
     #dependencies.py

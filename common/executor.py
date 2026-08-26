@@ -7,6 +7,9 @@ from common.tool_result import ToolResult
 from tools.tool_registry import registry
 from core.constants import constants
 from guardrails.guardrail_factory import guardrail_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def executor(state: AgentState):
@@ -23,14 +26,28 @@ def executor(state: AgentState):
     tool_messages = []
     all_citations = []
     all_tool_results = []
-    
-    tool_call_count = state.get(constants.TOOL_COUNT, 0)
+
+    existing_tool_results = state.get(constants.TOOL_RES, [])
+    executed_results = existing_tool_results.copy()
+    # tool_call_count = state.get(constants.TOOL_COUNT, 0)
+    tool_call_count = 0
 
     for tool_spec in plan.get(constants.TOOLS, []):
 
         tool_name = tool_spec[constants.TOOL]
         tool_args = tool_spec.get(constants.ARGS1, {})
 
+
+        duplicate = any(
+            item.get(constants.TOOL) == tool_name
+            and item.get(constants.ARGS1, {}) == tool_args
+            and item.get(constants.FILE_STATUS) == constants.SUCC
+            for item in executed_results
+        )
+
+        if duplicate:
+            logger.info("Skipping duplicate tool call: %s %s", tool_name, tool_args)        
+            continue
 
         tool_call_count += 1
         guardrail_service.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
@@ -79,12 +96,13 @@ def executor(state: AgentState):
             name=tool_name,
             tool_call_id=f"planner-{uuid4()}",
         )
-        print("========== EXECUTOR RESULT ==========")
-        print("TOOL:", tool_name)
+        logger.info("========== EXECUTOR RESULT ==========")
+        
+        logger.info("TOOL: %s", tool_name)
 
-        print("RESULT:", result)
-        print("SUMMARY:", repr(result.get("summary", "")))
-        print("======================================")
+        logger.info("RESULT: %s", result)
+        logger.info("SUMMARY: %s", repr(result.get("summary", "")))
+        logger.info("======================================")
         tool_messages.append(tool_message)
         all_citations.extend(
             result.get(constants.CITATIONS, [])
@@ -101,7 +119,12 @@ def executor(state: AgentState):
             }
         )
 
-    existing_tool_results = state.get(constants.TOOL_RES, [])
+        executed_results.append({
+                constants.TOOL: tool_name,
+                constants.ARGS1: tool_args,
+                constants.FILE_STATUS: constants.SUCC,
+        })
+
     existing_citations = state.get(constants.CITATIONS, [])
 
     return {

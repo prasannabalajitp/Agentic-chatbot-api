@@ -10,15 +10,19 @@ file_repository = FileRepository()
 
 
 def list_uploaded_files_impl(context: dict)->ToolResult:
-    user_id = context["user_id"]
-    thread_id = context["thread_id"]
+    user_id = context[constants.USER_ID]
+    thread_id = context[constants.THREAD_ID]
 
     files = file_repository.get_thread_files(
         user_id=user_id,
         thread_id=thread_id
     )
     if not files:
-        return constants.USER_DOC_EMPTY
+        return {
+            constants.SUMMARY: constants.USER_DOC_EMPTY,
+            constants.CITATIONS: [],
+            constants.METADATA: {},
+        }
     result = [
             {
                 constants.FILE_ID: file[constants.FILE_ID],
@@ -32,9 +36,9 @@ def list_uploaded_files_impl(context: dict)->ToolResult:
         for file in files
     )
     return {
-    "summary": llm_context,
-    "citations": result,
-    "metadata": {},
+    constants.SUMMARY: llm_context,
+    constants.CITATIONS: result,
+    constants.METADATA: {}
 }
     
 
