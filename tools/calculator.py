@@ -8,15 +8,15 @@ def calculator_impl(expr: str, context=None)->ToolResult:
     try:
         result = evaluate(expr)
         return {
-            "summary": str(result),
-            "citations": [],
-            "metadata": {}
+            constants.SUMMARY: str(result),
+            constants.CITATIONS: [],
+            constants.METADATA: {}
         }
     except Exception as ex:
         return {
-            "summary": str(ex),
-            "citations": [],
-            "metadata": {},
+            constants.SUMMARY: str(ex),
+            constants.CITATIONS: [],
+            constants.METADATA: {},
         }
 
 @register_tool(name=constants.CALC, handler=calculator_impl, category=constants.UTLTY)

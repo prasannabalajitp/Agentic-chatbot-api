@@ -60,7 +60,7 @@ class WebSearchService:
                 constants.CITATIONS: citations,
                 constants.METADATA: {
                     constants.QUERY: query,
-                    "result_count": len(results),
+                    constants.RESULT_CNT: len(results),
                 },
             }
 
@@ -79,11 +79,7 @@ class WebSearchService:
                 timeout=self.TIMEOUT,
                 headers={
                     "User-Agent": (
-                        "Mozilla/5.0 "
-                        "(Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 "
-                        "(KHTML, like Gecko) "
-                        "Chrome/151.0.0.0 Safari/537.36"
+                        "Mozilla/5.0"
                     )
                 },
             )
@@ -93,6 +89,9 @@ class WebSearchService:
             for tag in soup([constants.BS4_SOUP]):
                 tag.decompose()
 
-            return soup.get_text(" ",strip=True)
+            content = (soup.find(constants.ARTICLE) or soup.find(constants.MAIN) or soup.body or soup)
+            text = content.get_text(" ",strip=True)
+            text = " ".join(text.split())
+            return text
         except Exception:
             return constants.EMPTY_STRING

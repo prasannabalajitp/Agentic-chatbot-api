@@ -251,7 +251,10 @@ class Constants:
     
 
     #web_search_service.py
+    MAIN = "main"
     NO_RSLTS_FND = "No search results found."
+    RESULT_CNT = "result_count"
+    ARTICLE = "article"
     CNTXT = "context"
     CITATIONS = "citations"
     HTML_PARSER = "html.parser"
@@ -287,6 +290,7 @@ class Constants:
 
     #yfinance.py
     YFINANCE = "yfinance_tool"
+    NO_TCKR = "No ticker was provided."
 
     #yfinance_service.py
     LP_PRICE = "lastPrice"
@@ -298,6 +302,9 @@ class Constants:
     CLS = "Close"
     DAYS = "5d"
     TICKER = "ticker"
+    PREV_CLS = "previous_close"
+    PRICE = "price"
+    YFINANCE_URL = "https://finance.yahoo.com/"
 
 
     #embedding_service.py
@@ -368,5 +375,16 @@ class Constants:
     NEED_TOOLS = "needs_tools"
     TOOL_COUNT = "tool_call_count"
 
+    #deepagent.py
+    HARNESS_MODEL = "NVIDIA:nvidia/nemotron-3-super-120b-a12b"
+    FROZENSET = {
+            "ls",
+            "read_file",
+            "write_file",
+            "edit_file",
+            "glob",
+            "grep",
+            "execute",
+        }
 
 constants = Constants()

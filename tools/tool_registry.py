@@ -40,9 +40,7 @@ class ToolRegistry:
     def get_tool(self, name: str):
         metadata = self._tools.get(name)
         return metadata.tool if metadata else None
-    # def get(self, name: str):
-    #     metadata = self._tools.get(name)
-    #     return metadata.tool if metadata else None
+
     def get_metadata(self, name: str):
         return self._tools.get(name)
     

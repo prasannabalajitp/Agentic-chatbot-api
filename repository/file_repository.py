@@ -8,7 +8,7 @@ class FileRepository:
 
     def __init__(self):
         self.collection = file_collection
-    
+
     def create_file(self, user_id, thread_id, file_name, content_type, file_size):
         file = {
             constants.FILE_ID: str(uuid4()),
@@ -23,7 +23,7 @@ class FileRepository:
         }
         self.collection.insert_one(file)
         return file
-    
+
     def get_file(self, user_id, file_id: str):
         return self.collection.find_one({
                 constants.USER_ID: user_id,
@@ -31,7 +31,7 @@ class FileRepository:
             },{
                 constants.ID: 0
             })
-    
+
     def get_user_files(self, user_id: str):
         return list(
             self.collection.find({
@@ -41,7 +41,7 @@ class FileRepository:
                 constants.ID: 0
             }).sort(constants.CREATED_AT, -1)
         )
-    
+
     def update_status(self, file_id: str, status: str):
         return self.collection.update_one(
             {
@@ -60,7 +60,7 @@ class FileRepository:
             constants.FILE_ID: file_id,
             constants.USER_ID: user_id}
         )
-    
+
     def has_thread_files(self, user_id: str, thread_id: str) -> bool:
         return (
             self.collection.count_documents(
@@ -72,7 +72,7 @@ class FileRepository:
             )
             > 0
         )
-    
+
     def get_thread_files(self, user_id: str, thread_id: str):
         return list(
             self.collection.find({

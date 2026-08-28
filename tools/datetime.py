@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from tools.decorator import register_tool
 
 from langchain.tools import tool
@@ -7,7 +7,7 @@ from common.tool_result import ToolResult
 
 def date_time_impl(context=None)->ToolResult:
     return {
-        constants.SUMMARY: datetime.now().strftime(constants.STRF_TIME),
+        constants.SUMMARY: datetime.now(timezone.utc).strftime(constants.STRF_TIME),
         constants.CITATIONS: [],
         constants.METADATA: {},
     }

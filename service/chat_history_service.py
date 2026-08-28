@@ -1,21 +1,20 @@
 from langchain_core.messages import AIMessage, HumanMessage
 from database.checkpointer import checkpointer
+from common.deepagent import deep_agent
 from core.constants import constants
 
 def get_chat_history(thread_id: str):
-
     config = {
-        constants.CONFIGURABLE:{
+        constants.CONFIGURABLE: {
             constants.THREAD_ID: thread_id
         }
     }
 
-    checkpoint = checkpointer.get(config)
-
-    if checkpoint is None:
+    state = deep_agent.get_state(config)
+    if not state or not state.values:
         return []
-    
-    messages = checkpoint[constants.CHANL_VALUES][constants.MESSAGES]
+
+    messages = state.values.get(constants.MESSAGES, [])
     history = []
 
     for msg in messages:
@@ -24,7 +23,7 @@ def get_chat_history(thread_id: str):
                 constants.TYPE: constants.HUMAN,
                 constants.CONTENT: msg.content
             })
-        
+
         elif isinstance(msg, AIMessage):
             history.append({
                 constants.TYPE: constants.AI,

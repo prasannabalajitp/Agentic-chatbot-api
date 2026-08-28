@@ -40,9 +40,12 @@ def list_uploaded_files_impl(context: dict)->ToolResult:
     constants.CITATIONS: result,
     constants.METADATA: {}
 }
-    
 
-@register_tool(name=constants.UPLD_FILES, handler=list_uploaded_files_impl, category=constants.UTLTY)
+@register_tool(
+    name=constants.UPLD_FILES,
+    handler=list_uploaded_files_impl,
+    category=constants.UTLTY
+)
 @tool
 def list_uploaded_files(config: RunnableConfig):
     """
@@ -63,4 +66,9 @@ def list_uploaded_files(config: RunnableConfig):
     user_id = configurable[constants.USER_ID]
     thread_id = configurable[constants.THREAD_ID]
 
-    return list_uploaded_files_impl(user_id=user_id, thread_id=thread_id)
+    context = {
+        constants.USER_ID: user_id,
+        constants.THREAD_ID: thread_id,
+    }
+
+    return list_uploaded_files_impl(context=context)

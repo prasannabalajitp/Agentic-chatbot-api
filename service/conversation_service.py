@@ -17,14 +17,15 @@ from core.constants import constants
 from core.config import settings
 
 import math
+import json
 import logging
 
 logger = logging.getLogger(__name__)
 
 class ConversationService:
 
-    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, graph, llm, title_llm, guardrail_service: GuardRailService):
-        self.graph = graph
+    def __init__(self, user_repository: UserRepository, conversation_repository: ConversationRepository, deep_agent, llm, title_llm, guardrail_service: GuardRailService):
+        self.deepagent = deep_agent
         self.llm = llm
         self.title_llm = title_llm
         self.user_repository = user_repository
@@ -53,22 +54,43 @@ class ConversationService:
         return data
     
     def rename_conversation_if_needed(self, user_id: str, thread_id: str, query: str):
-
+        logger.warning(
+            "RENAME TASK STARTED | user=%s | thread=%s | query=%s",
+            user_id,
+            thread_id,
+            query
+        )
         try:
             if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
                 return
+            logger.warning("RENAME TASK: thread validated")
             conversation = self.conversation_repository.get_thread(thread_id)
+            logger.warning(
+                "RENAME TASK: current title = %s",
+                conversation[constants.TITLE]
+            )
             if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
+                logger.warning("RENAME TASK: title already changed")
                 return
 
+            logger.warning("RENAME TASK: generating title")
+
             title = self.generate_conversation_title(query=query)
+
+            logger.warning(
+            "RENAME TASK: generated title = %s",
+            title
+        )
 
             self.conversation_repository.update_thread_title(
                 thread_id=thread_id,
                 title=title
             )
+
+            logger.warning("RENAME TASK: title updated successfully")
+
         except Exception as ex:
-            logger.info("Failed to generate conversation title : %s",ex)
+            logger.warning("Failed to generate conversation title : %s",ex)
             return
         
     
@@ -93,22 +115,16 @@ class ConversationService:
         self.guardrails.validate_prompt(query)
         config = self.create_chat_config(user_id, thread_id)
 
-
-
-        result = self.graph.invoke(
+        result = self.deepagent.invoke(
             {
                 constants.MESSAGES: [
                     HumanMessage(content=query)
-                ],
-                constants.USER_ID: user_id,
-                constants.THREAD_ID: thread_id,
-                constants.CURR_STEP: 0,
-                constants.TOOL_RES: [],
-                constants.CITATIONS: [],
-                constants.REFL: None,
+                ]
             },
             config=config
         )
+        logger.warning("=============================")
+        logger.warning(result)
 
         response = result[constants.MESSAGES][-1].content
 
@@ -128,184 +144,209 @@ class ConversationService:
         }
     
     async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
-        if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND
-            )
-        
-        try:
-            self.guardrails.validate_prompt(query)
-        except HTTPException as e:
-            yield sse_event(
-                constants.ERR,
-                {
-                    constants.MSG: e.detail
-                }
-            )
-
-            return
+            if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
+                raise HTTPException(
+                    status_code=404,
+                    detail=constants.CONVERSATION_NOT_FOUND
+                )
+            
+            try:
+                self.guardrails.validate_prompt(query)
+            except HTTPException as e:
+                yield sse_event(
+                    constants.ERR,
+                    {
+                        constants.MSG: e.detail
+                    }
+                )
     
-        # config = create_graph_config(user_id, thread_id)
-        config = self.create_chat_config(user_id, thread_id)
-        yield sse_event(constants.CHART_STRT, {
-                constants.USER_ID: user_id,
-                constants.THREAD_ID: thread_id,
-                constants.QUERY: query
-            })
+                return
         
-        yield sse_event(
-            constants.CHART_MDL_STRT,
-            {
-                constants.MDL: settings.MODEL_NAME
-            }
-        )
-        
-        final_response = constants.EMPTY_STRING
-        final_citations = []
-        tool_call_count = 0
-
-        try:
-            async for event in self.graph.astream_events(
-                {
-                    constants.MESSAGES: [
-                        HumanMessage(content=query)
-                    ],
+            # config = create_graph_config(user_id, thread_id)
+            config = self.create_chat_config(user_id, thread_id)
+            yield sse_event(constants.CHART_STRT, {
                     constants.USER_ID: user_id,
                     constants.THREAD_ID: thread_id,
-                    constants.CURR_STEP: 0,
-                    constants.TOOL_RES: [],
-                    constants.CITATIONS: [],
-                    constants.REFL: None,
-                },
-                config=config,
-                version=constants.V2
-            ):
-                event_name = event[constants.EVENT]
-                if (
-                    event_name == constants.ON_CHAIN_END
-                    and event[constants.NAME] == constants.EXECUTOR
+                    constants.QUERY: query
+                })
+            
+            yield sse_event(
+                constants.CHART_MDL_STRT,
+                {
+                    constants.MDL: settings.MODEL_NAME
+                }
+            )
+            
+            final_response = constants.EMPTY_STRING
+            final_citations = []
+            tool_call_count = 0
+    
+            try:
+                # async for event in self.graph.astream_events(
+                #     {
+                #         constants.MESSAGES: [
+                #             HumanMessage(content=query)
+                #         ],
+                #         constants.USER_ID: user_id,
+                #         constants.THREAD_ID: thread_id,
+                #         constants.CURR_STEP: 0,
+                #         constants.TOOL_RES: [],
+                #         constants.CITATIONS: [],
+                #         constants.REFL: None,
+                #     },
+                #     config=config,
+                #     version=constants.V2
+                # ):
+                async for event in self.deepagent.astream_events(
+                    {
+                        constants.MESSAGES: [
+                            HumanMessage(content=query)
+                        ]
+                    },
+                    config=config,
+                    version=constants.V2
                 ):
-                    executor_output = event[constants.DATA][constants.OUTPUT]
-                    final_citations.extend(executor_output.get(constants.CITATIONS, []))
-                    yield sse_event(
-                        constants.TOOL_EXECUTION,
-                        {
-                            constants.TOOL_RES: executor_output.get(constants.TOOL_RES, []),
-                            constants.CITATIONS: executor_output.get(constants.CITATIONS, []),
-                        }
+                    event_name = event.get(constants.EVENT)
+                    event_name_value = event.get(constants.NAME)
+
+                    logger.warning(
+                        "DEEPAGENT EVENT: %s | NAME: %s",
+                        event_name,
+                        event_name_value
                     )
-                if event_name == constants.ON_CHAT_MDL_STRM:
-                    if event[constants.METADATA].get(constants.LNGGRPH_NODE) != constants.CHATBOT:
-                        continue
-                    chunk = event[constants.DATA][constants.CHUNK]
 
-                    if chunk.content:
-                        final_response += chunk.content
-                        yield sse_event(
-                            constants.LLM_CHUNK,
-                            {
-                                constants.CONTENT: chunk.content
-                            }
-                        )
-                elif event_name == constants.ON_TOOL_START:
-                    tool_call_count += 1
-
-                    tool_name = event[constants.NAME]
-                    try:
+                    if event_name == constants.ON_CHAT_MDL_STRM:
+                        chunk = event[constants.DATA].get(constants.CHUNK)
+                        if chunk and chunk.content:
+                            final_response += chunk.content
+                            yield sse_event(
+                                constants.LLM_CHUNK,
+                                {
+                                    constants.CONTENT: chunk.content
+                                }
+                            )
+                    elif event_name == constants.ON_TOOL_START:
+                        tool_call_count += 1
+    
+                        tool_name = event_name_value
                         self.guardrails.validate_tool(
                             tool_name=tool_name,
                             tool_calls=tool_call_count
                         )
 
-                    except Exception as e:
                         yield sse_event(
-                            constants.ERR,
+                            constants.TOOL_CALL,
                             {
-                                constants.MSG: e.detail
+                                constants.TOOL: tool_name,
+                                constants.ARGS: event[constants.DATA].get(
+                                    constants.INPUT,
+                                    {}
+                                )
                             }
                         )
+    
+                    elif event_name == constants.ON_TOOL_END:
+                        tool_output = event[constants.DATA].get(constants.OUTPUT)
+                        logger.warning("TOOL OUTPUT")
+                        if tool_output:
+                            tool_name = getattr(
+                                tool_output,
+                                constants.NAME,
+                                event_name_value
+                            )
 
-                        return
+                            tool_id = getattr(
+                                tool_output,
+                                constants.TOOL_ID,
+                                ""
+                            )
+                            tool_content = getattr(
+                                tool_output,
+                                constants.CONTENT,
+                                str(tool_output)
+                            )
+                            if isinstance(tool_content, str):
+                                try:
+                                    tool_result = json.loads(tool_content)
 
-                    yield sse_event(
-                        constants.TOOL_CALL,
-                        {
-                            constants.TOOL: event[constants.NAME],
-                            constants.ARGS: event[constants.DATA].get(constants.INPUT, {})
-                        }
-                    )
+                                    citations = tool_result.get(
+                                        constants.CITATIONS,
+                                        []
+                                    )
 
-                elif event_name == constants.ON_TOOL_END:
-                    tool_output = event[constants.DATA][constants.OUTPUT]
-                    logger.info("TOOL OUTPUT")
-                    yield sse_event(
-                        constants.TOOL_RESP,
-                        {
-                            constants.TOOL: tool_output.name,
-                            constants.TOOL_ID: tool_output.tool_call_id,
-                            constants.RESPONSE: tool_output.content,
-                        },
-                    )
-        except Exception as e:
+                                    if citations:
+                                        final_citations.extend(citations)
+
+                                except (json.JSONDecodeError, TypeError):
+                                    pass
+                            yield sse_event(
+                                constants.TOOL_RESP,
+                                {
+                                    constants.TOOL: tool_name,
+                                    constants.TOOL_ID: tool_id,
+                                    constants.RESPONSE: tool_content,
+                                }
+                            )
+            except Exception as e:
+                yield sse_event(
+                    constants.ERR,
+                    {
+                        constants.TYPE: type(e).__name__,
+                        constants.MSG: str(e)
+                    },
+                )
+                return
+            
+            self.conversation_repository.update_conversation_activity(thread_id=thread_id)
             yield sse_event(
-                constants.ERR,
+                constants.CONV_ACTY,
                 {
-                    constants.TYPE: type(e).__name__,
-                    constants.MSG: str(e)
-                },
-            )
-            return
-        
-        self.conversation_repository.update_conversation_activity(thread_id=thread_id)
-        yield sse_event(
-            constants.CONV_ACTY,
-            {
-                constants.THREAD_ID: thread_id
-            }
-        )
-        conversation = self.conversation_repository.get_thread(thread_id=thread_id)
-
-        background_task.add_task(
-            self.rename_conversation_if_needed,
-            user_id,
-            thread_id,
-            query,
-        )
-        
-        yield sse_event(
-            constants.CHART_MDL_END,
-            {
-                constants.MDL: settings.MODEL_NAME
-            }
-        )
-
-        try:
-            final_response = self.guardrails.validate_response(
-                final_response
-            )
-        except Exception as e:
-            yield sse_event(
-                constants.ERR,
-                {
-                    constants.MSG: e.detail
+                    constants.THREAD_ID: thread_id
                 }
             )
-
-            return
-
-
-        yield sse_event(
-            constants.DONE,
-            {
-                constants.THREAD_ID: thread_id,
-                constants.RESPONSE: final_response,
-                constants.CITATIONS: final_citations,
-                constants.TS: str(datetime.now(timezone.utc).isoformat()),
-                constants.MSG_COUNT: conversation[constants.MSG_COUNT] if conversation[constants.MSG_COUNT] else 0,
-                constants.FNSH_RESON: constants.CMPLTD,
-            }
-        )
+            conversation = self.conversation_repository.get_thread(thread_id=thread_id)
+            logger.warning("CONVERSATION : %s", conversation)
+    
+            background_task.add_task(
+                self.rename_conversation_if_needed,
+                user_id,
+                thread_id,
+                query,
+            )
+            
+            yield sse_event(
+                constants.CHART_MDL_END,
+                {
+                    constants.MDL: settings.MODEL_NAME
+                }
+            )
+    
+            try:
+                final_response = self.guardrails.validate_response(
+                    final_response
+                )
+            except Exception as e:
+                yield sse_event(
+                    constants.ERR,
+                    {
+                        constants.MSG: e.detail
+                    }
+                )
+    
+                return
+    
+    
+            yield sse_event(
+                constants.DONE,
+                {
+                    constants.THREAD_ID: thread_id,
+                    constants.RESPONSE: final_response,
+                    constants.CITATIONS: final_citations,
+                    constants.TS: str(datetime.now(timezone.utc).isoformat()),
+                    constants.MSG_COUNT: conversation[constants.MSG_COUNT] if conversation[constants.MSG_COUNT] else 0,
+                    constants.FNSH_RESON: constants.CMPLTD,
+                }
+            )
 
 
     def get_messages(self, user_id: str,  thread_id: str):

@@ -37,7 +37,7 @@ class YFinanceService:
         try:
             if not ticker:
                 return {
-                    constants.SUMMARY: "No ticker was provided.",
+                    constants.SUMMARY: constants.NO_TCKR,
                     constants.CITATIONS: [],
                     constants.METADATA: {},
                 }
@@ -82,14 +82,14 @@ class YFinanceService:
                     {
                         constants.TITLE: "Yahoo Finance",
                         constants.URL:
-                            f"https://finance.yahoo.com/"
+                            f"{constants.YFINANCE_URL}"
                             f"quote/{resolved_ticker}/",
                     }
                 ],
                 constants.METADATA: {
                     constants.TICKER: resolved_ticker,
-                    "price": float(last_price),
-                    "previous_close": (
+                    constants.PRICE: float(last_price),
+                    constants.PREV_CLS: (
                         float(previous_close)
                         if previous_close is not None
                         else None

@@ -41,14 +41,6 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             constants.METADATA: {},
         }
 
-    for doc in documents:
-        logger.info(
-            "FILE:", doc[constants.FILE_NAME],
-            "CHUNK:", doc[constants.CHUNK_IDX],
-            "SCORE:", doc[constants.SCORE],
-            "LENGTH:", len(doc[constants.TXT])
-        )
-
     context_text = "\n\n".join(
         doc[constants.TXT]
         for doc in documents

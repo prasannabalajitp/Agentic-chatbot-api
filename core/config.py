@@ -7,7 +7,9 @@ class Settings:
     NVIDIA_API_KEY=os.getenv("NVIDIA_API_KEY")
     MODEL_NAME=os.getenv("MODEL")
     EMBEDDING_MODEL=os.getenv("EMBEDDING_MODEL")
+    HARNESS_MODEL=os.getenv("HARNESS_MODEL")
     PLANNER_MODEL = os.getenv("PLANNER_MODEL")
+    TITLE_MODEL = os.getenv("TITLE_MODEL")
     BASE_URL = os.getenv("BASE_URL")
 
     MONGODB_URI = os.getenv("MONGODB_URI")
