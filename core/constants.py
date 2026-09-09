@@ -23,6 +23,9 @@ class Constants:
     RAG_MDL = "meta/llama-3.3-70b-instruct"
     REASONING = "reasoning"
     ARGS1 = "args"
+    ENBL_THINK = "enable_thinking"
+    FORCE_NON_EMPTY_CONTENT = "force_nonempty_content"
+    CHATE_TMPLT_KWARGS = "chat_template_kwargs"
     RSNG_API_FLDS = "_reasoning_api_fields"
     
 
@@ -41,6 +44,15 @@ class Constants:
     EMAIL = "email"
     MATCHED = "matched"
     HASHED_PWD = "hashed_password"
+
+    #middleware.py
+    RESULT = "result"
+    RETRY_CNTNT = (
+                    "The previous response was empty. "
+                    "The tool result is already available. "
+                    "Now provide the final answer using that tool result. "
+                    "Do not call the tool again."
+                )
 
 
     #chatbot_graph.py
@@ -180,9 +192,11 @@ class Constants:
     CHART_MDL_END = "chat_model_end"
     TOOL_EXECUTION = "tool_execution"
     CHART_MDL_STRT = "chat_model_start"
+    ON_CHAT_MDL_END = "on_chat_model_end"
     CONV_ACTY = "conversation_activity"
     CONV_UPDATED = "conversation_updated"
     TTL_FAIL = "Failed to generate title"
+    ON_CHAT_MDL_STRT = "on_chat_model_start"
     ON_CHAT_MDL_STRM = "on_chat_model_stream"
     LMT_EXCP = "Limit must be between 1 and 100"
     STREAMING_MDL = "meta/llama-3.1-8b-instruct"
@@ -252,12 +266,12 @@ class Constants:
 
     #web_search_service.py
     MAIN = "main"
-    NO_RSLTS_FND = "No search results found."
-    RESULT_CNT = "result_count"
-    ARTICLE = "article"
     CNTXT = "context"
+    ARTICLE = "article"
     CITATIONS = "citations"
     HTML_PARSER = "html.parser"
+    RESULT_CNT = "result_count"
+    NO_RSLTS_FND = "No search results found."
     BS4_SOUP = ["script", "style", "noscript", "header", "footer", "nav", "aside", "form", "svg", "iframe"]
     
     

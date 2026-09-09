@@ -52,41 +52,45 @@ class ConversationService:
             constants.CREATED_AT: str(result[constants.CREATED_AT])
         }
         return data
+
+    def extract_chunk_content(self, chunk) -> str:
+        logger.warning("CHUNK : %s", chunk)
+        content = getattr(chunk, constants.CONTENT, constants.EMPTY_STRING)
+
+        if isinstance(content, str):
+            return content
+
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+
+                elif isinstance(item, dict):
+                    text = item.get(constants.TXT)
+                    if text:
+                        parts.append(text)
+
+            return constants.EMPTY_STRING.join(parts)
+        return constants.EMPTY_STRING
     
     def rename_conversation_if_needed(self, user_id: str, thread_id: str, query: str):
-        logger.warning(
-            "RENAME TASK STARTED | user=%s | thread=%s | query=%s",
-            user_id,
-            thread_id,
-            query
-        )
+        logger.warning("RENAME TASK STARTED | user=%s | thread=%s | query=%s", user_id, thread_id, query)
         try:
             if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
                 return
             logger.warning("RENAME TASK: thread validated")
             conversation = self.conversation_repository.get_thread(thread_id)
-            logger.warning(
-                "RENAME TASK: current title = %s",
-                conversation[constants.TITLE]
-            )
+            logger.warning("RENAME TASK: current title = %s", conversation[constants.TITLE])
             if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
                 logger.warning("RENAME TASK: title already changed")
                 return
 
             logger.warning("RENAME TASK: generating title")
-
             title = self.generate_conversation_title(query=query)
+            logger.warning("RENAME TASK: generated title = %s", title)
 
-            logger.warning(
-            "RENAME TASK: generated title = %s",
-            title
-        )
-
-            self.conversation_repository.update_thread_title(
-                thread_id=thread_id,
-                title=title
-            )
-
+            self.conversation_repository.update_thread_title(thread_id=thread_id,title=title)
             logger.warning("RENAME TASK: title updated successfully")
 
         except Exception as ex:
@@ -105,7 +109,6 @@ class ConversationService:
         return config
 
     def create_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
-
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
             raise HTTPException(
                 status_code=404,
@@ -114,30 +117,22 @@ class ConversationService:
         
         self.guardrails.validate_prompt(query)
         config = self.create_chat_config(user_id, thread_id)
-
-        result = self.deepagent.invoke(
-            {
-                constants.MESSAGES: [
-                    HumanMessage(content=query)
-                ]
+        input_messages = [HumanMessage(content=query)]
+        logger.error("RAW INPUT TO INVOKE: %s", [(m.type, m.id, m.content) for m in input_messages])
+        logger.error("CONFIG : %s", config)
+        result = self.deepagent.invoke({
+                constants.MESSAGES: input_messages
             },
             config=config
         )
+
         logger.warning("=============================")
         logger.warning(result)
-
         response = result[constants.MESSAGES][-1].content
-
         response = self.guardrails.validate_response(response)
-
         self.conversation_repository.update_conversation_activity(thread_id=thread_id)
 
-        background_task.add_task(
-            self.rename_conversation_if_needed,
-            user_id,
-            thread_id,
-            query
-        )
+        background_task.add_task(self.rename_conversation_if_needed, user_id, thread_id, query)
         return {
             constants.RESPONSE: response,
             constants.CITATIONS: result.get(constants.CITATIONS, []),
@@ -162,7 +157,6 @@ class ConversationService:
     
                 return
         
-            # config = create_graph_config(user_id, thread_id)
             config = self.create_chat_config(user_id, thread_id)
             yield sse_event(constants.CHART_STRT, {
                     constants.USER_ID: user_id,
@@ -182,21 +176,9 @@ class ConversationService:
             tool_call_count = 0
     
             try:
-                # async for event in self.graph.astream_events(
-                #     {
-                #         constants.MESSAGES: [
-                #             HumanMessage(content=query)
-                #         ],
-                #         constants.USER_ID: user_id,
-                #         constants.THREAD_ID: thread_id,
-                #         constants.CURR_STEP: 0,
-                #         constants.TOOL_RES: [],
-                #         constants.CITATIONS: [],
-                #         constants.REFL: None,
-                #     },
-                #     config=config,
-                #     version=constants.V2
-                # ):
+                current_model_chunks = []
+                current_model_has_tool_call = False
+                model_generation = 0
                 async for event in self.deepagent.astream_events(
                     {
                         constants.MESSAGES: [
@@ -209,22 +191,49 @@ class ConversationService:
                     event_name = event.get(constants.EVENT)
                     event_name_value = event.get(constants.NAME)
 
-                    logger.warning(
-                        "DEEPAGENT EVENT: %s | NAME: %s",
-                        event_name,
-                        event_name_value
-                    )
+                    logger.warning("DEEPAGENT EVENT: %s | NAME: %s | DATA: %r", event_name, event_name_value, event.get(constants.DATA),)
+                    if event_name == constants.ON_CHAT_MDL_STRT:
+                        model_generation += 1
+                        current_model_chunks = []
+                        current_model_has_tool_call = False
 
-                    if event_name == constants.ON_CHAT_MDL_STRM:
+                        yield sse_event(
+                            constants.CHART_MDL_STRT,
+                            {constants.MDL: settings.MODEL_NAME},
+                        )
+
+                    elif event_name == constants.ON_CHAT_MDL_STRM:
                         chunk = event[constants.DATA].get(constants.CHUNK)
-                        if chunk and chunk.content:
-                            final_response += chunk.content
+                        content = self.extract_chunk_content(chunk)
+                        logger.info("CONTENT : %s", content)
+                        if content:
+                            current_model_chunks.append(content)
+
                             yield sse_event(
                                 constants.LLM_CHUNK,
                                 {
-                                    constants.CONTENT: chunk.content
+                                    constants.CONTENT: content
                                 }
                             )
+                    elif event_name == constants.ON_CHAT_MDL_END:
+                        output = event[constants.DATA].get(constants.OUTPUT)
+                        tool_calls = getattr(output, constants.TOOL_CALLS, []) or []
+                        if tool_calls:
+                            current_model_has_tool_call = True
+
+                        if not tool_calls:
+                            response_text = constants.EMPTY_STRING.join(current_model_chunks)
+                            if response_text:
+                                final_response += response_text
+
+                                yield sse_event(
+                                    constants.LLM_CHUNK,
+                                    {constants.CONTENT: response_text},
+                                )
+                        yield sse_event(
+                            constants.CHART_MDL_END,
+                            {constants.MDL: settings.MODEL_NAME},
+                        )
                     elif event_name == constants.ON_TOOL_START:
                         tool_call_count += 1
     
@@ -247,38 +256,30 @@ class ConversationService:
     
                     elif event_name == constants.ON_TOOL_END:
                         tool_output = event[constants.DATA].get(constants.OUTPUT)
-                        logger.warning("TOOL OUTPUT")
-                        if tool_output:
-                            tool_name = getattr(
-                                tool_output,
-                                constants.NAME,
-                                event_name_value
-                            )
 
-                            tool_id = getattr(
-                                tool_output,
-                                constants.TOOL_ID,
-                                ""
-                            )
-                            tool_content = getattr(
-                                tool_output,
-                                constants.CONTENT,
-                                str(tool_output)
-                            )
+                        logger.warning("TOOL OUTPUT: %r", tool_output)
+                        if tool_output:
+                            tool_name = getattr(tool_output, constants.NAME, event_name_value)
+
+                            tool_id = getattr(tool_output, constants.TOOL_ID, constants.EMPTY_STRING)
+
+                            tool_content = getattr(tool_output, constants.CONTENT, str(tool_output))
+
                             if isinstance(tool_content, str):
+
                                 try:
                                     tool_result = json.loads(tool_content)
 
-                                    citations = tool_result.get(
-                                        constants.CITATIONS,
-                                        []
-                                    )
+                                    citations = tool_result.get(constants.CITATIONS, [])
 
                                     if citations:
                                         final_citations.extend(citations)
 
+                                        logger.warning("CITATIONS FOUND: %s", citations)
+
                                 except (json.JSONDecodeError, TypeError):
-                                    pass
+                                    logger.warning("Tool output is not JSON: %r",tool_content)
+                                    
                             yield sse_event(
                                 constants.TOOL_RESP,
                                 {
@@ -329,7 +330,7 @@ class ConversationService:
                 yield sse_event(
                     constants.ERR,
                     {
-                        constants.MSG: e.detail
+                        constants.MSG: str(e)
                     }
                 )
     

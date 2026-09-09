@@ -1,3 +1,5 @@
+import logging
+
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -6,11 +8,20 @@ from core.constants import constants
 
 import json
 
+
+logger = logging.getLogger(__name__)
+
 llm = ChatNVIDIA(
     api_key=settings.NVIDIA_API_KEY,
     model=settings.MODEL_NAME,
     temperature=0,
-    max_completion_tokens=1536
+    max_completion_tokens=2048,
+    model_kwargs={
+        constants.CHATE_TMPLT_KWARGS: {
+            constants.ENBL_THINK: False,
+            constants.FORCE_NON_EMPTY_CONTENT: True
+        }
+    }
 )
 
 title_llm = ChatNVIDIA(
@@ -38,7 +49,8 @@ def invoke_chat(messages):
     Some Nemotron responses return the final answer in
     additional_kwargs['reasoning_content'] with an empty content.
     """
-
+    total_chars = sum(len(str(m.content)) for m in messages)
+    logger.warning("PROMPT SIZE CHECK | messages=%d | approx_chars=%d", len(messages), total_chars)
     response = llm.invoke(messages)
 
     response.additional_kwargs.pop(constants.REASONING, None)
@@ -64,7 +76,7 @@ def invoke_chat(messages):
                 prev = msg.tool_calls[0]
 
                 previous_key = (
-                    prev["name"],
+                    prev[constants.NAME],
                     json.dumps(prev.get(constants.ARGS1, {}), sort_keys=True),
                 )
                 break
