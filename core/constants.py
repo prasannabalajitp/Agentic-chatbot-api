@@ -401,4 +401,10 @@ class Constants:
             "execute",
         }
 
+    #agent_service.py
+    MDL_END = "model_end"
+    TOOL_END = "tool_end"
+    MDL_STRT = "model_start"
+    TOOL_STRT = "tool_start"
+
 constants = Constants()
