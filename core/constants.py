@@ -390,7 +390,6 @@ class Constants:
     TOOL_COUNT = "tool_call_count"
 
     #deepagent.py
-    HARNESS_MODEL = "NVIDIA:nvidia/nemotron-3-super-120b-a12b"
     FROZENSET = {
             "ls",
             "read_file",
@@ -404,7 +403,5 @@ class Constants:
     #agent_service.py
     MDL_END = "model_end"
     TOOL_END = "tool_end"
-    MDL_STRT = "model_start"
-    TOOL_STRT = "tool_start"
 
 constants = Constants()

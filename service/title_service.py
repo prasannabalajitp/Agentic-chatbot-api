@@ -26,8 +26,14 @@ class TitleService:
                 """
                         )
                     ]
-            result = self.title_llm.invoke(messages)
-            return result.content.strip()
+            try:
+                result = self.title_llm.invoke(messages)
+                return result.content.strip()
+            except Exception as e:
+                 return HTTPException(
+                      status_code=500,
+                      detail=str(e)
+                 )
 
     def rename_conversation(self, user_id: str, thread_id: str, title: str):
     
