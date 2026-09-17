@@ -126,6 +126,8 @@ class Constants:
     DOCX_EXT = ".docx"
     CSV_EXT = ".csv"
     XLS_EXT = ".xlsx"
+    INVALID_FILE = "Invalid File"
+    FILE_EXT = "File Extension"
 
 
     #chat_history_service.py
@@ -208,6 +210,8 @@ class Constants:
     
 
     #document_parser_service.py
+    EXCEL = "excel"
+    SHEET = "sheet"
     ALLOWED_EXT = {".txt", ".pdf", ".docx", ".csv", ".xlsx"}
 
     

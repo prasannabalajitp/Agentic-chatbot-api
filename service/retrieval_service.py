@@ -11,7 +11,7 @@ class RetrievalService:
             api_key=settings.NVIDIA_API_KEY
         )
 
-    def retrieve(self, query: str, user_id: str, thread_id: str, limit: int = 5):
+    def retrieve(self, query: str, user_id: str, thread_id: str, limit: int = 3):
         query_vector = self.embedding_model.embed_query(query)
 
         pipeline = [
@@ -34,6 +34,7 @@ class RetrievalService:
                     "file_name": 1,
                     "chunk_index": 1,
                     "text": 1,
+                    "metadata": 1,
                     "score": {
                         "$meta": "vectorSearchScore"
                     }
@@ -47,6 +48,7 @@ class RetrievalService:
                 "file_name": result["file_name"],
                 "chunk_index": result["chunk_index"],
                 "text": result["text"],
+                "metadata": result.get("metadata", {}),
                 "score": round(result["score"], 2)
             }
             for result in results
