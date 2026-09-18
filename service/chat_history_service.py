@@ -25,10 +25,15 @@ def get_chat_history(thread_id: str):
             })
 
         elif isinstance(msg, AIMessage):
+            metadata = msg.response_metadata or {}
             history.append({
                 constants.TYPE: constants.AI,
                 constants.CONTENT: msg.content,
-                constants.TOOL_CALLS: msg.tool_calls
+                constants.TOOL_CALLS: msg.tool_calls,
+                constants.CITATIONS: metadata.get(
+                    constants.CITATIONS,
+                    []
+                )
             })
 
     return history

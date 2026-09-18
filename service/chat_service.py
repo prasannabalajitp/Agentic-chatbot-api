@@ -7,6 +7,7 @@ from common.sse import sse_event
 from core.config import settings
 from core.constants import constants
 from context.agent_context import AgentContext
+from context.agent_event import AgentEventType
 from repository.conversation_repository import ConversationRepository
 from repository.file_repository import FileRepository
 from service.agent_service import AgentService
@@ -48,7 +49,8 @@ class ChatService:
         result = self.agent_service.invoke(context)
 
         logger.info("Agent execution completed | user=%s | thread=%s", user_id, thread_id)
-        response = result[constants.MESSAGES][-1].content
+        # response = result[constants.MESSAGES][-1].content
+        response = result.response
         response = self.guardrails.validate_response(response)
         self.conversation_repository.update_conversation_activity(thread_id=thread_id)
 
@@ -61,10 +63,7 @@ class ChatService:
 
         return {
             constants.RESPONSE: response,
-            constants.CITATIONS: result.get(
-                constants.CITATIONS,
-                [],
-            ),
+            constants.CITATIONS: result.citations
         }
 
     async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str,query: str):
@@ -105,14 +104,14 @@ class ChatService:
             async for event in self.agent_service.stream(context):
                 logger.debug("AGENT EVENT | type=%s | tool=%s", event.type, event.tool_name)
 
-                if event.type == constants.MDL_STRT:
+                if event.type == AgentEventType.MODEL_START:
                     yield sse_event(
                         constants.CHART_MDL_STRT,
                         {
                             constants.MDL: settings.MODEL_NAME,
                         },
                     )
-                elif event.type == constants.LLM_CHUNK:
+                elif event.type == AgentEventType.LLM_CHUNK:
                     if event.content:
                         final_response += event.content
                         yield sse_event(
@@ -121,7 +120,7 @@ class ChatService:
                                 constants.CONTENT: event.content,
                             },
                         )
-                elif event.type == constants.MDL_END:
+                elif event.type == AgentEventType.MODEL_END:
                     logger.debug("MODEL END | has_tool_call=%s", event.has_tool_call)
 
                     yield sse_event(
@@ -130,7 +129,7 @@ class ChatService:
                             constants.MDL: settings.MODEL_NAME,
                         },
                     )
-                elif event.type == constants.TOOL_STRT:
+                elif event.type == AgentEventType.TOOL_START:
                     tool_call_count += 1
                     tool_name = event.tool_name
                     self.guardrails.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
@@ -142,7 +141,7 @@ class ChatService:
                             constants.ARGS: event.arguments or {},
                         },
                     )
-                elif event.type == constants.TOOL_END:
+                elif event.type == AgentEventType.TOOL_END:
                     logger.debug("TOOL END | tool=%s | tool_id=%s", event.tool_name, event.tool_id)
 
                     if event.citations:
@@ -170,6 +169,9 @@ class ChatService:
             )
             return
 
+        if final_citations:
+            self.agent_service.persist_citations(context=context, citations=final_citations)
+            
         self.conversation_repository.update_conversation_activity(thread_id=thread_id,)
         yield sse_event(
             constants.CONV_ACTY,

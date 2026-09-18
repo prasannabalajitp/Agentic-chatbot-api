@@ -410,5 +410,6 @@ class Constants:
     TOOL_END = "tool_end"
     MDL_STRT = "model_start"
     TOOL_STRT = "tool_start"
+    RESP_META = "response_metadata"
 
 constants = Constants()

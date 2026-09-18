@@ -40,7 +40,7 @@ embedding_service = EmbeddingService()
 retrieval_service = RetrievalService()
 agent_service = AgentService(deepagent=deep_agent)
 guardrail_service = GuardRailService(llm)
-title_service = TitleService(title_llm=title_llm, user_repository=user_repository, conversation_repository=conversation_repository)
+title_service = TitleService(title_llm=llm, user_repository=user_repository, conversation_repository=conversation_repository)
 chat_service = ChatService(agent_service=agent_service, conversation_repository=conversation_repository, guardrail_service=guardrail_service, title_service=title_service, file_repository=file_repository)
 file_service = FileService(file_repository=file_repository,document_service=document_service, embedding_service=embedding_service)
 

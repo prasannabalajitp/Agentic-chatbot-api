@@ -1,13 +1,13 @@
 import json
 import logging
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from common.configurable import create_graph_config
 from context.agent_context import AgentContext
-from context.agent_event import AgentEvent, AgentEventType
+from context.agent_result import AgentResult
 from core.constants import constants
-from context.agent_event import AgentEvent
+from context.agent_event import AgentEvent, AgentEventType
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class AgentService:
 
         if event_name == constants.ON_CHAT_MDL_STRT:
             return AgentEvent(
-                type=constants.MDL_STRT
+                type=AgentEventType.MODEL_START
             )
 
         if event_name == constants.ON_CHAT_MDL_STRM:
@@ -72,7 +72,7 @@ class AgentService:
 
             if content:
                 return AgentEvent(
-                    type=constants.LLM_CHUNK,
+                    type=AgentEventType.LLM_CHUNK,
                     content=content
                 )
             return None
@@ -89,7 +89,7 @@ class AgentService:
             )
 
         if event_name == constants.ON_TOOL_START:
-            return AgentEvent(type=constants.TOOL_STRT, tool_name=name, arguments=data.get(constants.INPUT, {}))
+            return AgentEvent(type=AgentEventType.TOOL_START, tool_name=name, arguments=data.get(constants.INPUT, {}))
 
         if event_name == constants.ON_TOOL_END:
             tool_output = data.get(constants.OUTPUT)
@@ -122,6 +122,68 @@ class AgentService:
 
         return None
 
+    def _normalize_result(self, result) -> AgentResult:
+        messages = result.get(constants.MESSAGES, [])
+        response = constants.EMPTY_STRING
+
+        if messages:
+            response = getattr(messages[-1], constants.CONTENT, constants.EMPTY_STRING)
+
+        citations = result.get(constants.CITATIONS, [])
+        if not isinstance(citations, list):
+            citations = []
+        return AgentResult(response=response, citations=citations)
+
+    def persist_citations(self, context: AgentContext, citations: list[dict]):
+        if not citations:
+            return
+
+        config = self.create_config(context)
+        state = self.deepagent.get_state(config)
+
+        if not state or not state.values:
+            logger.warning("Unable to persist citations - state not found | user = %s | thread = %s", context.user_id, context.thread_id)
+            return
+
+        messages = state.values.get(constants.MESSAGES, [])
+        if not messages:
+            logger.warning("Unable to persist citations - no message found | user = %s | thread = %s", context.user_id, context.thread_id)
+            return
+
+        latest_ai_message = None
+
+        for message in reversed(messages):
+            if isinstance(message, AIMessage):
+                latest_ai_message = message
+                break
+
+        if not latest_ai_message:
+            logger.warning("No AI message found for citation persistence | user=%s | thread=%s", context.user_id, context.thread_id)
+            return
+
+        metadata = dict(latest_ai_message.response_metadata or {})
+        metadata[constants.CITATIONS] = citations
+
+        updated_message = latest_ai_message.model_copy(
+            update={
+                constants.RESP_META: metadata
+            }
+        )
+
+        updated_messages = list(messages)
+        for index in range(len(updated_messages) - 1, -1, -1):
+            if isinstance(updated_messages[index], AIMessage):
+                updated_messages[index] = updated_message
+                break
+
+        self.deepagent.update_state(
+            config,
+            {
+                constants.MESSAGES: updated_messages
+            }
+        )
+        logger.info("Citations persisted | user=%s | thread=%s | count=%s", context.user_id, context.thread_id, len(citations))
+    
 
     def invoke(self, context: AgentContext):
         """
@@ -135,7 +197,7 @@ class AgentService:
             input_data,
             config=config
         )
-        return result
+        return self._normalize_result(result)
 
     async def stream(self, context: AgentContext):
         """
@@ -146,19 +208,9 @@ class AgentService:
         """
         config = self.create_config(context)
         input_data = self._create_input(context)
-        logger.info(
-            "Streaming DeepAgent | user=%s | thread=%s",
-            context.user_id,
-            context.thread_id,
-        )
+        logger.info("Streaming DeepAgent | user=%s | thread=%s", context.user_id, context.thread_id)
 
-        async for event in self.deepagent.astream_events(
-            input_data,
-            config=config,
-            version=constants.V2,
-        ):
+        async for event in self.deepagent.astream_events(input_data, config=config, version=constants.V2):
             agent_event = self._normalize_event(event)
             if agent_event:
                 yield agent_event
-
-    
