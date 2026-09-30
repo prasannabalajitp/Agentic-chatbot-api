@@ -10,6 +10,7 @@ from context.agent_context import AgentContext
 from context.agent_event import AgentEventType
 from repository.conversation_repository import ConversationRepository
 from repository.file_repository import FileRepository
+from repository.usage_repository import UsageRepository
 from service.agent_service import AgentService
 from service.guardrail_service import GuardRailService
 from service.title_service import TitleService
@@ -20,9 +21,10 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
 
-    def __init__(self, agent_service: AgentService, conversation_repository: ConversationRepository, guardrail_service: GuardRailService, title_service: TitleService, file_repository: FileRepository):
+    def __init__(self, agent_service: AgentService, conversation_repository: ConversationRepository, guardrail_service: GuardRailService, title_service: TitleService, file_repository: FileRepository, usage_repository: UsageRepository):
         self.agent_service = agent_service
         self.conversation_repository = conversation_repository
+        self.usage_repository = usage_repository
         self.file_repository = file_repository
         self.guardrails = guardrail_service
         self.title_service = title_service
@@ -96,7 +98,13 @@ class ChatService:
 
         final_response = constants.EMPTY_STRING
         final_citations = []
+        tools_used = []
         tool_call_count = 0
+        usage = {
+            constants.INP_TKN: 0,
+            constants.OUT_TKN: 0,
+            constants.TOT_TKN: 0,
+        }
 
         try:
             context = self._create_agent_context(user_id=user_id, thread_id=thread_id, query=query)
@@ -123,6 +131,18 @@ class ChatService:
                 elif event.type == AgentEventType.MODEL_END:
                     logger.debug("MODEL END | has_tool_call=%s", event.has_tool_call)
 
+                    if event.usage:
+                        usage[constants.INP_TKN] += event.usage.get(constants.INP_TKN, 0)
+                        usage[constants.OUT_TKN] += event.usage.get(constants.OUT_TKN, 0)
+                        usage[constants.TOT_TKN] += event.usage.get(constants.TOT_TKN, 0)
+
+                        logger.info(
+                            "Accumulated LLM usage | input=%s | output=%s | total=%s",
+                            usage[constants.INP_TKN],
+                            usage[constants.OUT_TKN],
+                            usage[constants.TOT_TKN],
+                        )
+
                     yield sse_event(
                         constants.ON_CHAT_MDL_END,
                         {
@@ -132,6 +152,8 @@ class ChatService:
                 elif event.type == AgentEventType.TOOL_START:
                     tool_call_count += 1
                     tool_name = event.tool_name
+                    if tool_name and tool_name not in tools_used:
+                        tools_used.append(tool_name)
                     self.guardrails.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
 
                     yield sse_event(
@@ -171,7 +193,17 @@ class ChatService:
 
         if final_citations:
             self.agent_service.persist_citations(context=context, citations=final_citations)
-            
+
+        usage_record = {
+            constants.USER_ID: user_id,
+            constants.THREAD_ID: thread_id,
+            constants.INP_TKN: usage[constants.INP_TKN],
+            constants.OUT_TKN: usage[constants.OUT_TKN],
+            constants.TOT_TKN: usage[constants.TOT_TKN],
+            constants.TOOL_CALLS: tool_call_count,
+            constants.TOOLS: tools_used,
+        }
+        self.usage_repository.create_usage(usage_record)
         self.conversation_repository.update_conversation_activity(thread_id=thread_id,)
         yield sse_event(
             constants.CONV_ACTY,

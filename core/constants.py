@@ -32,6 +32,7 @@ class Constants:
     #mongodb.py
     FILE = "file"
     THREADS = "threads"
+    LLM_USAGE = "llm_usage"
     REF_TKN = "refresh_tokens"
     CHECKPOINTS = "checkpoints"
     FILE_VECTORS = "file_vectors"
@@ -39,11 +40,22 @@ class Constants:
     CHECKPOINTS_WRITES = "checkpoint_writes"
 
 
+
     #user_repository.py
     NAME = "name"
     EMAIL = "email"
     MATCHED = "matched"
     HASHED_PWD = "hashed_password"
+
+    #usage_repository.py
+    GTE = "$gte"
+    SUM = "$sum"
+    MATCH = "$match"
+    GROUP = "$group"
+    ADD_SET = "$addToSet"
+    INP_TKN = "input_tokens"
+    TOT_TKN = "total_tokens"
+    OUT_TKN = "output_tokens"
 
     #middleware.py
     RESULT = "result"
