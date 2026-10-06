@@ -19,4 +19,6 @@ class AgentEvent:
     arguments: dict[str, Any] | None = None
     result: str | None = None
     citations: list[dict[str, Any]] = field(default_factory=list)
+    artifact: dict | None = None
     has_tool_call: bool = False
+    usage: dict[str, int] | None = None

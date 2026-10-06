@@ -79,13 +79,18 @@ class AgentService:
 
         if event_name == constants.ON_CHAT_MDL_END:
             output = data.get(constants.OUTPUT)
-            logger.debug("MODEL END OUTPUT: %r", output)
+            logger.info("MODEL END OUTPUT: %r", output)
             tool_calls = getattr(output, constants.TOOL_CALLS, []) or []
+            usage = getattr(output, "usage_metadata", None)
+
+            if usage:
+                logger.info("LLM USAGE : %s", usage)
 
             return AgentEvent(
                 type=constants.MDL_END,
                 has_tool_call=bool(tool_calls),
-                content=None
+                content=None,
+                usage=usage
             )
 
         if event_name == constants.ON_TOOL_START:
@@ -99,6 +104,7 @@ class AgentService:
             tool_name = getattr(tool_output, constants.NAME, name)
             tool_id = getattr(tool_output, constants.TOOL_ID, constants.EMPTY_STRING)
             tool_content = getattr(tool_output, constants.CONTENT, constants.EMPTY_STRING)
+            tool_artifact = getattr(tool_output, constants.ARTIFACT_DATA, None)
 
             citations = []
 
@@ -117,7 +123,8 @@ class AgentService:
                 tool_name=tool_name,
                 tool_id=tool_id,
                 result=tool_content,
-                citations=citations
+                citations=citations,
+                artifact=tool_artifact
             )
 
         return None
@@ -134,8 +141,8 @@ class AgentService:
             citations = []
         return AgentResult(response=response, citations=citations)
 
-    def persist_citations(self, context: AgentContext, citations: list[dict]):
-        if not citations:
+    def persist_citations(self, context: AgentContext, citations: list[dict], artifacts: list[dict]):
+        if not citations and not artifacts:
             return
 
         config = self.create_config(context)
@@ -162,7 +169,12 @@ class AgentService:
             return
 
         metadata = dict(latest_ai_message.response_metadata or {})
-        metadata[constants.CITATIONS] = citations
+        
+        if citations:
+            metadata[constants.CITATIONS] = citations
+
+        if artifacts:
+            metadata[constants.ARTIFACTS] = artifacts
 
         updated_message = latest_ai_message.model_copy(
             update={

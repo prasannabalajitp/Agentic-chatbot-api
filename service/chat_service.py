@@ -75,6 +75,7 @@ class ChatService:
                 status_code=404,
                 detail=constants.CONVERSATION_NOT_FOUND,
             )
+
         try:
             self.guardrails.validate_prompt(query)
 
@@ -99,7 +100,9 @@ class ChatService:
         final_response = constants.EMPTY_STRING
         final_citations = []
         tools_used = []
+        final_artifacts = []
         tool_call_count = 0
+        model_call_count = 0
         usage = {
             constants.INP_TKN: 0,
             constants.OUT_TKN: 0,
@@ -130,6 +133,7 @@ class ChatService:
                         )
                 elif event.type == AgentEventType.MODEL_END:
                     logger.debug("MODEL END | has_tool_call=%s", event.has_tool_call)
+                    model_call_count += 1
 
                     if event.usage:
                         usage[constants.INP_TKN] += event.usage.get(constants.INP_TKN, 0)
@@ -153,7 +157,8 @@ class ChatService:
                     tool_call_count += 1
                     tool_name = event.tool_name
                     if tool_name and tool_name not in tools_used:
-                        tools_used.append(tool_name)
+                        tools_used.append(tool_name)                
+
                     self.guardrails.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
 
                     yield sse_event(
@@ -170,13 +175,21 @@ class ChatService:
                         final_citations.extend(event.citations)
                         logger.debug("CITATIONS FOUND: %s", event.citations)
 
+                    if event.artifact:
+                        final_artifacts.append(event.artifact)
+
+                    tool_response = {
+                        constants.TOOL: event.tool_name,
+                        constants.TOOL_ID: event.tool_id,
+                        constants.RESPONSE: event.result
+                    }
+
+                    if event.artifact:
+                        tool_response[constants.ARTIFACT_DATA] = event.artifact
+        
                     yield sse_event(
                         constants.TOOL_RESP,
-                        {
-                            constants.TOOL: event.tool_name,
-                            constants.TOOL_ID: event.tool_id,
-                            constants.RESPONSE: event.result,
-                        },
+                        tool_response
                     )
 
         except Exception as e:
@@ -191,9 +204,22 @@ class ChatService:
             )
             return
 
-        if final_citations:
-            self.agent_service.persist_citations(context=context, citations=final_citations)
+        if final_citations or final_artifacts:
+            self.agent_service.persist_citations(context=context, citations=final_citations, artifacts=final_artifacts)
 
+        logger.info(
+            "AGENT USAGE SUMMARY | user=%s | thread=%s | "
+            "model_calls=%s | tool_calls=%s | tools=%s | "
+            "input=%s | output=%s | total=%s",
+            user_id,
+            thread_id,
+            model_call_count,
+            tool_call_count,
+            tools_used,
+            usage[constants.INP_TKN],
+            usage[constants.OUT_TKN],
+            usage[constants.TOT_TKN],
+        )
         usage_record = {
             constants.USER_ID: user_id,
             constants.THREAD_ID: thread_id,
@@ -232,6 +258,7 @@ class ChatService:
                 },
             )
             return
+
         yield sse_event(
             constants.CHART_MDL_END,
             {
@@ -244,6 +271,7 @@ class ChatService:
                 constants.THREAD_ID: thread_id,
                 constants.RESPONSE: final_response,
                 constants.CITATIONS: final_citations,
+                constants.ARTIFACTS: final_artifacts,
                 constants.TS: datetime.now(
                     timezone.utc
                 ).isoformat(),

@@ -8,6 +8,7 @@ from routers.message import router as message_router
 from routers.auth import router as auth_router
 from routers.admin import router as admin_router
 from routers.file import router as file_router
+from routers.artifact import router as artifact_router
 from core.constants import constants
 import logging
 
@@ -37,3 +38,4 @@ app.include_router(conversation_router)
 app.include_router(message_router)
 app.include_router(file_router)
 app.include_router(auth_router)
+app.include_router(artifact_router)

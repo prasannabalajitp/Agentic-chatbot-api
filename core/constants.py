@@ -32,6 +32,7 @@ class Constants:
     #mongodb.py
     FILE = "file"
     THREADS = "threads"
+    ARTIFACTS = "artifacts"
     LLM_USAGE = "llm_usage"
     REF_TKN = "refresh_tokens"
     CHECKPOINTS = "checkpoints"
@@ -56,6 +57,13 @@ class Constants:
     INP_TKN = "input_tokens"
     TOT_TKN = "total_tokens"
     OUT_TKN = "output_tokens"
+
+    #artifact_repository.py
+    ARTIFACT_ID = "artifact_id"
+    FILE_PATH = "file_path"
+    FILE_NAME = "file_name"
+    CONTENT_TYPE = "content_type"
+    FILE_SIZE = "file_size"
 
     #middleware.py
     RESULT = "result"
@@ -171,6 +179,9 @@ class Constants:
 
     #user_service.py
     USR_EXISTS = "User already exists"
+
+    #chat_service.py
+    ARTIFACT_DATA = "artifact"
 
 
     #conversation_service.py
@@ -311,6 +322,11 @@ class Constants:
 
     #web_search.py
     WEB_SRCH = "web_search"
+
+    #artifact.py
+    ARTIFACT_NOT_FOUND = "Artifact Not Found"
+    ARTIFACT = "create_artifact"
+    ARTIFACT_DIR = "artifacts"
 
     #tool_registry.py
     GEN = "general"
