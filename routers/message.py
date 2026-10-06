@@ -5,28 +5,27 @@ from dependencies import get_current_user
 from models.request_model import ChatRequest
 
 from core.constants import constants
-from dependencies import conversation_service
+from dependencies import conversation_service, chat_service
 
 router = APIRouter(prefix="/conversations", tags=[constants.MESSAGES])
 
 
 @router.post("/{thread_id}/messages")
 async def create_message(background_tasks: BackgroundTasks,  thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
-    response = conversation_service.create_message(
+    response = chat_service.create_message(
         background_task=background_tasks,
         user_id=current_user[constants.USER_ID],
         thread_id=thread_id,
         query=request.query
     )
-
     return {
         "response": response
     }
 
-@router.post("/{thread_id}/messagse/stream")
+@router.post("/{thread_id}/messages/stream")
 async def create_stream_message(background_task: BackgroundTasks, thread_id: str, request: ChatRequest, current_user = Depends(get_current_user)):
     return StreamingResponse(
-        conversation_service.stream_message(
+        chat_service.stream_message(
             background_task=background_task,
             user_id=current_user[constants.USER_ID],
             thread_id=thread_id,

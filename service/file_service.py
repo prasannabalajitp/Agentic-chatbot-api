@@ -15,7 +15,7 @@ class FileService:
         self.embedding_service = embedding_service
 
     async def create_file_service(self, user_id, thread_id, file):
-        raw_text = await self.document_service.extract_text(file)
+        raw_text = await self.document_service.extract_documents(file)
         create_file_result = self.file_repository.create_file(
             user_id=user_id,
             thread_id=thread_id,
@@ -28,7 +28,7 @@ class FileService:
             thread_id=thread_id,
             file_id=(create_file_result[constants.FILE_ID]),
             file_name=file.filename,
-            text=raw_text
+            documents=raw_text
         )
         return CreateFileResponse(file_id=create_file_result[constants.FILE_ID], thread_id=create_file_result[constants.THREAD_ID], created_at=str(create_file_result[constants.CREATED_AT]), file_name=file.filename)
     

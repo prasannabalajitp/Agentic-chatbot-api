@@ -27,7 +27,13 @@ class AdminService:
             raise HTTPException(status_code=404, detail=constants.USR_NOT_FOUND)
         return UserResponse(user_id=user[constants.USER_ID], name=user[constants.NAME], email=user[constants.EMAIL], created_at=str(user[constants.CREATED_AT]))
     
-    def update_role(self, user_id: str, role: str):
+    def update_role(self, user_id: str, role: str, current_user_id: str):
+
+        if user_id == current_user_id:
+            raise HTTPException(
+                status_code=400,
+                detail=constants.ROLE_UPDATE_ERR
+            )
         
         if not self.user_repository.user_exists(user_id):
             raise HTTPException(

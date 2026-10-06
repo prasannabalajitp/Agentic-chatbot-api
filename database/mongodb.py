@@ -23,3 +23,7 @@ refresh_tokens_collection: Collection = db[constants.REF_TKN]
 file_collection: Collection = db[constants.FILE]
 
 file_vector_collection: Collection = db[constants.FILE_VECTORS]
+
+usage_collection: Collection = db[constants.LLM_USAGE]
+
+artifact_collection: Collection = db[constants.ARTIFACTS]

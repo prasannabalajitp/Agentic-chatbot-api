@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
 from jose import jwt, JWTError
@@ -50,11 +51,17 @@ def verify_access_token(token: str) -> dict:
             algorithms=[settings.JWT_ALGORITHM]
         )
         if payload.get(constants.TYPE) != constants.ACCESS:
-            raise JWTError(constants.INVALID_TKN)
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=constants.INVALID_TKN
+        )
         return payload
     
     except JWTError:
-        raise JWTError(constants.INVALID_TKN)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=constants.INVALID_TKN
+        )
     
 def create_refresh_token(data: dict) -> tuple[str, datetime]:
     payload = data.copy()
@@ -80,7 +87,13 @@ def verify_refresh_token(token: str) -> dict:
             algorithms=[settings.JWT_ALGORITHM]
         )
         if payload.get(constants.TYPE) != constants.REFRESH:
-            raise JWTError(constants.INVALID_TKN)
+            return HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=constants.INVALID_TKN
+            )
         return payload
     except JWTError:
-        raise JWTError(constants.INVALID_TKN)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=constants.INVALID_TKN
+        )

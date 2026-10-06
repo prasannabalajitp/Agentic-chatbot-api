@@ -4,11 +4,48 @@ from langchain_core.runnables import RunnableConfig
 from tools.decorator import register_tool
 from repository.file_repository import FileRepository
 from core.constants import constants
+from common.tool_result import ToolResult
 
 file_repository = FileRepository()
 
 
-@register_tool(name=constants.UPLD_FILES, category=constants.UTLTY)
+def list_uploaded_files_impl(context: dict)->ToolResult:
+    user_id = context[constants.USER_ID]
+    thread_id = context[constants.THREAD_ID]
+
+    files = file_repository.get_thread_files(
+        user_id=user_id,
+        thread_id=thread_id
+    )
+    if not files:
+        return {
+            constants.SUMMARY: constants.USER_DOC_EMPTY,
+            constants.CITATIONS: [],
+            constants.METADATA: {},
+        }
+    result = [
+            {
+                constants.FILE_ID: file[constants.FILE_ID],
+                constants.FILE_NAME: file[constants.FILE_NAME],
+                constants.CREATED_AT: str(file[constants.CREATED_AT]),
+            }
+            for file in files
+        ]
+    llm_context = "Uploaded documents:\n\n" + "\n".join(
+        f"- {file[constants.FILE_NAME]} (Uploaded: {file[constants.CREATED_AT]})"
+        for file in files
+    )
+    return {
+    constants.SUMMARY: llm_context,
+    constants.CITATIONS: result,
+    constants.METADATA: {}
+}
+
+@register_tool(
+    name=constants.UPLD_FILES,
+    handler=list_uploaded_files_impl,
+    category=constants.UTLTY
+)
 @tool
 def list_uploaded_files(config: RunnableConfig):
     """
@@ -29,19 +66,9 @@ def list_uploaded_files(config: RunnableConfig):
     user_id = configurable[constants.USER_ID]
     thread_id = configurable[constants.THREAD_ID]
 
-    files = file_repository.get_thread_files(
-        user_id=user_id,
-        thread_id=thread_id,
-    )
+    context = {
+        constants.USER_ID: user_id,
+        constants.THREAD_ID: thread_id,
+    }
 
-    if not files:
-        return constants.USER_DOC_EMPTY
-
-    return [
-        {
-            constants.FILE_ID: file[constants.FILE_ID],
-            constants.FILE_NAME: file[constants.FILE_NAME],
-            constants.CREATED_AT: str(file[constants.CREATED_AT]),
-        }
-        for file in files
-    ]
+    return list_uploaded_files_impl(context=context)

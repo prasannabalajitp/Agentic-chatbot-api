@@ -23,17 +23,23 @@ class Constants:
     RAG_MDL = "meta/llama-3.3-70b-instruct"
     REASONING = "reasoning"
     ARGS1 = "args"
+    ENBL_THINK = "enable_thinking"
+    FORCE_NON_EMPTY_CONTENT = "force_nonempty_content"
+    CHATE_TMPLT_KWARGS = "chat_template_kwargs"
     RSNG_API_FLDS = "_reasoning_api_fields"
     
 
     #mongodb.py
     FILE = "file"
     THREADS = "threads"
+    ARTIFACTS = "artifacts"
+    LLM_USAGE = "llm_usage"
     REF_TKN = "refresh_tokens"
     CHECKPOINTS = "checkpoints"
     FILE_VECTORS = "file_vectors"
     CONVERSATIONS = "conversations"
     CHECKPOINTS_WRITES = "checkpoint_writes"
+
 
 
     #user_repository.py
@@ -42,18 +48,63 @@ class Constants:
     MATCHED = "matched"
     HASHED_PWD = "hashed_password"
 
+    #usage_repository.py
+    GTE = "$gte"
+    SUM = "$sum"
+    MATCH = "$match"
+    GROUP = "$group"
+    ADD_SET = "$addToSet"
+    INP_TKN = "input_tokens"
+    TOT_TKN = "total_tokens"
+    OUT_TKN = "output_tokens"
+
+    #artifact_repository.py
+    ARTIFACT_ID = "artifact_id"
+    FILE_PATH = "file_path"
+    FILE_NAME = "file_name"
+    CONTENT_TYPE = "content_type"
+    FILE_SIZE = "file_size"
+
+    #middleware.py
+    RESULT = "result"
+    RETRY_CNTNT = (
+                    "The previous response was empty. "
+                    "The tool result is already available. "
+                    "Now provide the final answer using that tool result. "
+                    "Do not call the tool again."
+                )
+
 
     #chatbot_graph.py
+    EXPR = "expr"
+    LEN = "length"
     TOOLS = "tools"
+    SUCC = "success"
     MAX_HISTORY = 10
     THINK = "<think>"
     CHATBOT = "chatbot"
     USER_ID = "user_id"
     THREAD_ID = "thread_id"
+    PLANNER = "planner"
+    EXECUTOR = "executor"
+    TOOL_RES = "tool_results"
+    CALCULATOR = "calculator"
     CONFIGURABLE = "configurable"
     STRF_TIME = "%d-%m-%Y %H:%M:%S"
     RSNG_CNTNT = "reasoning_content"
+    MAX_ITR = "Maximum planner iteration reached."
+    ERR_GEN_RES = "I couldn't generate final response."
     DUP_ENTRY = "Duplicate tool detected. Ending graph."
+    EXH_REQ = "Model exhausted completion tokens before producing a final answer."
+    PLANNER_REASON = (
+                "All requested tool calls have already "
+                "been executed successfully. "
+                "Use the existing tool results."
+            )
+
+    #planner.py
+    EMPTY_CNTNT = "Planner returned empty content"
+    NON_JSON_RESP = "General knowledge; planner returned a non-JSON response."
 
 
     #request_model.py
@@ -69,8 +120,10 @@ class Constants:
     SET = "$set"
     INC = "$inc"
     TITLE = "title"
+    REFL = "reflection"
     CREATED_AT = "created_at"
     UPDATED_AT = "updated_at"
+    CURR_STEP = "current_step"
     MSG_COUNT = "message_count"
     LST_MSG_AT = "last_message_at"
     
@@ -91,6 +144,10 @@ class Constants:
     UTF_EXT = "utf-8"
     PDF_EXT = ".pdf"
     DOCX_EXT = ".docx"
+    CSV_EXT = ".csv"
+    XLS_EXT = ".xlsx"
+    INVALID_FILE = "Invalid File"
+    FILE_EXT = "File Extension"
 
 
     #chat_history_service.py
@@ -111,6 +168,7 @@ class Constants:
     USR_DEL_SUC = "User Deleted Successfully."
     USR_ROL_UPDATED = "User role updated successfully."
     CONV_DEL_SUC = "Conversation deleted successfully."
+    ROLE_UPDATE_ERR = "You cannot change your own role."
     
 
     #file_service.py    
@@ -121,6 +179,9 @@ class Constants:
 
     #user_service.py
     USR_EXISTS = "User already exists"
+
+    #chat_service.py
+    ARTIFACT_DATA = "artifact"
 
 
     #conversation_service.py
@@ -149,11 +210,18 @@ class Constants:
     ON_TOOL_END = "on_tool_end"
     TOOL_RESP = "tool_response"
     FNSH_RESON = "finish_reason"
+    ON_CHAIN_END = "on_chain_end"
     ON_TOOL_START = "on_tool_start"
+    UPLDED_FIELS = "uploaded_files"
+    LNGGRPH_NODE = "langgraph_node"
     CHART_MDL_END = "chat_model_end"
+    TOOL_EXECUTION = "tool_execution"
     CHART_MDL_STRT = "chat_model_start"
+    ON_CHAT_MDL_END = "on_chat_model_end"
     CONV_ACTY = "conversation_activity"
     CONV_UPDATED = "conversation_updated"
+    TTL_FAIL = "Failed to generate title"
+    ON_CHAT_MDL_STRT = "on_chat_model_start"
     ON_CHAT_MDL_STRM = "on_chat_model_stream"
     LMT_EXCP = "Limit must be between 1 and 100"
     STREAMING_MDL = "meta/llama-3.1-8b-instruct"
@@ -165,7 +233,9 @@ class Constants:
     
 
     #document_parser_service.py
-    ALLOWED_EXT = {".txt", ".pdf", ".docx"}
+    EXCEL = "excel"
+    SHEET = "sheet"
+    ALLOWED_EXT = {".txt", ".pdf", ".docx", ".csv", ".xlsx"}
 
     
     #user_service.py
@@ -222,9 +292,14 @@ class Constants:
     
 
     #web_search_service.py
-    NO_RSLTS_FND = "No search results found."
+    MAIN = "main"
     CNTXT = "context"
+    ARTICLE = "article"
     CITATIONS = "citations"
+    HTML_PARSER = "html.parser"
+    RESULT_CNT = "result_count"
+    NO_RSLTS_FND = "No search results found."
+    BS4_SOUP = ["script", "style", "noscript", "header", "footer", "nav", "aside", "form", "svg", "iframe"]
     
     
     #dependencies.py
@@ -237,21 +312,45 @@ class Constants:
     USER_DOC_EMPTY = "No documents have been uploaded for this conversation yet. \nPlease upload your documents first."
     AI_SRCH = "ai_search"
     UTLTY = "utility"
+    SCORE = "score"
 
     #calculator.py
-    CALC = "calculator"
+    CALC = "calculator_tool"
 
     #datetime.py
-    CUR_DT = "current datetime"
+    CUR_DT = "current_datetime"
 
     #web_search.py
     WEB_SRCH = "web_search"
+
+    #artifact.py
+    ARTIFACT_NOT_FOUND = "Artifact Not Found"
+    ARTIFACT = "create_artifact"
+    ARTIFACT_DIR = "artifacts"
 
     #tool_registry.py
     GEN = "general"
 
     #list_uploaded_files.py
     UPLD_FILES = "list_uploaded_files"
+
+    #yfinance.py
+    YFINANCE = "yfinance_tool"
+    NO_TCKR = "No ticker was provided."
+
+    #yfinance_service.py
+    LP_PRICE = "lastPrice"
+    PRV_CLS = "previousClose"
+    CURRNCY = "currency"
+    SYMB = "symbol"
+    QUOT_TYP = "quoteType"
+    EQTY = "EQUITY"
+    CLS = "Close"
+    DAYS = "5d"
+    TICKER = "ticker"
+    PREV_CLS = "previous_close"
+    PRICE = "price"
+    YFINANCE_URL = "https://finance.yahoo.com/"
 
 
     #embedding_service.py
@@ -315,5 +414,30 @@ class Constants:
     #tool_guardrail.py
     MNY_TOOL_CALL = "Too many tool calls."
 
+    #executor.py
+    PLAN = "plan"
+    SUMMARY = "summary"
+    METADATA = "metadata"
+    NEED_TOOLS = "needs_tools"
+    TOOL_COUNT = "tool_call_count"
+
+    #deepagent.py
+    HARNESS_MODEL = "NVIDIA:nvidia/nemotron-3-super-120b-a12b"
+    FROZENSET = {
+            "ls",
+            "read_file",
+            "write_file",
+            "edit_file",
+            "glob",
+            "grep",
+            "execute",
+        }
+
+    #agent_service.py
+    MDL_END = "model_end"
+    TOOL_END = "tool_end"
+    MDL_STRT = "model_start"
+    TOOL_STRT = "tool_start"
+    RESP_META = "response_metadata"
 
 constants = Constants()

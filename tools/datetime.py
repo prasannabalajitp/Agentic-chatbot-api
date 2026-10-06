@@ -1,11 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from tools.decorator import register_tool
 
 from langchain.tools import tool
 from core.constants import constants
+from common.tool_result import ToolResult
+
+def date_time_impl(context=None)->ToolResult:
+    return {
+        constants.SUMMARY: datetime.now(timezone.utc).strftime(constants.STRF_TIME),
+        constants.CITATIONS: [],
+        constants.METADATA: {},
+    }
 
 
-@register_tool(name=constants.CUR_DT, category=constants.GEN)
+@register_tool(name=constants.CUR_DT, handler=date_time_impl, category=constants.GEN)
 @tool(parse_docstring=True)
 def current_datetime() -> str:
     """
@@ -14,4 +22,4 @@ def current_datetime() -> str:
     Returns:
         The current local date and time formatted as DD-MM-YYYY HH:MM:SS.
     """
-    return datetime.now().strftime(constants.STRF_TIME)
+    return date_time_impl()
