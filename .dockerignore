@@ -1,27 +1,43 @@
 .git
 .gitignore
+.github
 
-chatbotenv/
-venv/
-.venv/
+.env
+.env.*
+!.env.example
 
-.vscode/
-.idea/
-
-__pycache__/
-*.pyc
+__pycache__
+*.py[cod]
 *.pyo
 *.pyd
 
-.env
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
 
-*.log
+venv
+.venv
+env
+ENV
+chatbotenv
 
-tests/
-docs/
+node_modules
+.wrangler
+
+tests
+docs
 
 README.md
 
-Dockerfile
+*.log
+*.tmp
+*.bak
 
-.dockerignore
+.DS_Store
+Thumbs.db
+
+dist
+build
+*.egg-info
