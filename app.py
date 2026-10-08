@@ -22,6 +22,11 @@ app = FastAPI(
     description=constants.CHATBOT
 )
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

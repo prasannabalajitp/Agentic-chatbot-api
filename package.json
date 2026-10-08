@@ -1,0 +1,26 @@
+{
+  "name": "agentic-chatbot-api",
+  "version": "1.0.0",
+  "description": "A production-ready AI-powered enterprise chatbot built using **FastAPI, LangGraph, LangChain, DeepAgents, MongoDB, and NVIDIA NIM LLMs**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prasannabalajitp/Agentic-chatbot-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/prasannabalajitp/Agentic-chatbot-api/issues"
+  },
+  "homepage": "https://github.com/prasannabalajitp/Agentic-chatbot-api#readme",
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.148.0"
+  }
+}

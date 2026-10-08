@@ -48,3 +48,5 @@ langgraph.db
 # Misc
 *.swp
 *.bak
+node_modules/
+.wrangler/
