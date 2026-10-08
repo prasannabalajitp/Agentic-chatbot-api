@@ -4,6 +4,8 @@ from core.constants import constants
 from common.tool_result import ToolResult
 from numexpr import evaluate
 
+from tools.tool_registry import ToolRisk
+
 def calculator_impl(expr: str, context=None)->ToolResult:
     try:
         result = evaluate(expr)
@@ -19,7 +21,7 @@ def calculator_impl(expr: str, context=None)->ToolResult:
             constants.METADATA: {},
         }
 
-@register_tool(name=constants.CALC, handler=calculator_impl, category=constants.UTLTY)
+@register_tool(name=constants.CALC, handler=calculator_impl, category=constants.UTLTY, risk=ToolRisk.LOW)
 @tool(parse_docstring=True)
 def calculator_tool(expr: str) -> str:
     """

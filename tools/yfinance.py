@@ -5,6 +5,7 @@ from langchain.tools import tool
 from core.constants import constants
 from service.yfinance_service import YFinanceService
 from tools.decorator import register_tool
+from tools.tool_registry import ToolRisk
 
 
 yfinance_service = YFinanceService()
@@ -75,11 +76,6 @@ def _extract_ticker(value: str) -> str:
         raise ValueError(
             f"Could not determine ticker from: {value}"
         )
-
-    # For:
-    # "CURRENT GOLDBEES STOCK PRICE TODAY"
-    #
-    # candidates = ["GOLDBEES"]
     return candidates[0]
 
 
@@ -98,7 +94,6 @@ def yfinance_impl(
         query="Current GOLDBEES stock price today"
     """
 
-    # Prefer an explicit ticker.
     raw_value = ticker or symbol or query
 
     if not raw_value:
@@ -125,6 +120,7 @@ def yfinance_impl(
     name=constants.YFINANCE,
     handler=yfinance_impl,
     category=constants.GEN,
+    risk=ToolRisk.MEDIUM
 )
 @tool
 def yfinance_tool(
@@ -148,7 +144,7 @@ def yfinance_tool(
     Returns:
         Current market information.
     """
-
+    print("IN YFINANCE TOOL")
     return yfinance_impl(
         ticker=ticker,
         symbol=symbol,

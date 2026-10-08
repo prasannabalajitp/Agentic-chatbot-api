@@ -324,9 +324,12 @@ class Constants:
     WEB_SRCH = "web_search"
 
     #artifact.py
-    ARTIFACT_NOT_FOUND = "Artifact Not Found"
     ARTIFACT = "create_artifact"
     ARTIFACT_DIR = "artifacts"
+    RES_FORMAT = "content_and_artifact"
+    ARTIFACT_NOT_FOUND = "Artifact Not Found"
+    ARTIFACT_TOOL_NAME = "create_artifact_tool"
+
 
     #tool_registry.py
     GEN = "general"
@@ -439,5 +442,17 @@ class Constants:
     MDL_STRT = "model_start"
     TOOL_STRT = "tool_start"
     RESP_META = "response_metadata"
+
+
+    #
+    ERROR_TYPE = "error_type"
+    RETRYABLE = "retryable"
+    TIMEOUT = "timeout"
+    AUTH_ERROR = "auth_error"
+    NOT_FOUND = "not_found"
+    INVALID_INPUT = "invalid_input"
+    RATE_LIMIT = "rate_limit"
+    SERVICE_ERROR = "service_error"
+    UNKNOWN_ERROR = "unknown_error"
 
 constants = Constants()

@@ -11,6 +11,8 @@ from guardrails.guardrail_factory import guardrail_service
 
 import logging
 
+from tools.tool_registry import ToolRisk
+
 logger = logging.getLogger(__name__)
 
 retrieval_service = RetrievalService()
@@ -25,7 +27,9 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
         return {
             constants.SUMMARY: constants.USER_DOC_EMPTY,
             constants.CITATIONS: [],
-            constants.METADATA: {},
+            constants.METADATA: {
+                constants.SUCCESS: True,
+            },
         }
 
     documents = retrieval_service.retrieve(
@@ -38,7 +42,9 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
         return {
             constants.SUMMARY: constants.NO_REL_DOC,
             constants.CITATIONS: [],
-            constants.METADATA: {},
+            constants.METADATA: {
+                constants.SUCCESS: True,
+            },
         }
 
     context_text = "\n\n".join(
@@ -57,10 +63,12 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             }
             for doc in documents
         ],
-        constants.METADATA: {},
+        constants.METADATA: {
+            constants.SUCCESS: True,
+        }
     }
 
-@register_tool(name=constants.AI_SRCH,  handler=ai_search_impl, category=constants.UTLTY,)
+@register_tool(name=constants.AI_SRCH,  handler=ai_search_impl, category=constants.UTLTY, risk=ToolRisk.MEDIUM)
 @tool
 def ai_search(query: str, config: RunnableConfig):
     """
