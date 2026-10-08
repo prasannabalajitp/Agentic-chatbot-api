@@ -43,7 +43,7 @@ def list_uploaded_files_impl(context: dict)->ToolResult:
     constants.METADATA: {}
 }
     
-@register_tool(name=constants.UPLD_FILES, handler=list_uploaded_files_impl, category=constants.UTLTY, risk=ToolRisk.LO)
+@register_tool(name=constants.UPLD_FILES, handler=list_uploaded_files_impl, category=constants.UTLTY, risk=ToolRisk.LOW)
 @tool
 def list_uploaded_files(config: RunnableConfig):
     """
