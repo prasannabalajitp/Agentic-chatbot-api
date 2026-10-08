@@ -1,10 +1,16 @@
 from dataclasses import dataclass
+from enum import Enum
 from core.constants import constants
 from typing import Any
 import logging
 
 logger = logging.getLogger(__name__)
 
+
+class ToolRisk(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 @dataclass
 class ToolMetaData:
@@ -14,19 +20,26 @@ class ToolMetaData:
     category: str
     enabled: bool = True
 
+    risk: ToolRisk = ToolRisk.LOW
+    requires_confirmation: bool = False
+    max_calls_per_run: int = 5
+
 
 class ToolRegistry:
 
     def __init__(self):
         self._tools: dict[str, ToolMetaData] = {}
 
-    def register(self, name: str, tool: Any, handler: Any, category: str = constants.GEN, enabled: bool = True) -> None:
+    def register(self, name: str, tool: Any, handler: Any, category: str = constants.GEN, enabled: bool = True, risk: ToolRisk = ToolRisk.LOW, requires_confirmation: bool = False, max_calls_per_run: int = 5) -> None:
         self._tools[name] = ToolMetaData(
             name=name,
             tool=tool,
             handler=handler,
             category=category,
-            enabled=enabled
+            enabled=enabled,
+            risk=risk,
+            requires_confirmation=requires_confirmation,
+            max_calls_per_run=max_calls_per_run
         )
 
     
@@ -40,7 +53,9 @@ class ToolRegistry:
     def get_tool(self, name: str):
         metadata = self._tools.get(name)
         return metadata.tool if metadata else None
-
+    # def get(self, name: str):
+    #     metadata = self._tools.get(name)
+    #     return metadata.tool if metadata else None
     def get_metadata(self, name: str):
         return self._tools.get(name)
     

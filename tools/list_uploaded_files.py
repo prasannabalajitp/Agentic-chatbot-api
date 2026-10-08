@@ -5,6 +5,7 @@ from tools.decorator import register_tool
 from repository.file_repository import FileRepository
 from core.constants import constants
 from common.tool_result import ToolResult
+from tools.tool_registry import ToolRisk
 
 file_repository = FileRepository()
 
@@ -17,6 +18,7 @@ def list_uploaded_files_impl(context: dict)->ToolResult:
         user_id=user_id,
         thread_id=thread_id
     )
+    print(f"FILES : {files}")
     if not files:
         return {
             constants.SUMMARY: constants.USER_DOC_EMPTY,
@@ -40,12 +42,8 @@ def list_uploaded_files_impl(context: dict)->ToolResult:
     constants.CITATIONS: result,
     constants.METADATA: {}
 }
-
-@register_tool(
-    name=constants.UPLD_FILES,
-    handler=list_uploaded_files_impl,
-    category=constants.UTLTY
-)
+    
+@register_tool(name=constants.UPLD_FILES, handler=list_uploaded_files_impl, category=constants.UTLTY, risk=ToolRisk.LO)
 @tool
 def list_uploaded_files(config: RunnableConfig):
     """

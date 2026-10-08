@@ -8,6 +8,7 @@ from core.constants import constants
 from common.tool_result import ToolResult
 from service.artifact_service import ArtifactService
 from repository.artifact_repository import ArtifcatRepository
+from tools.tool_registry import ToolRisk
 
 artifact_repository = ArtifcatRepository()
 
@@ -57,8 +58,8 @@ def artifact_impl(filename: str, content: str, content_type: str, context: dict)
         }
 
 
-@register_tool(name=constants.ARTIFACT, handler=artifact_impl, category=constants.UTLTY)
-@tool(parse_docstring=True, response_format="content_and_artifact")
+@register_tool(name=constants.ARTIFACT_TOOL_NAME, handler=artifact_impl, category=constants.UTLTY, risk=ToolRisk.MEDIUM)
+@tool(parse_docstring=True, response_format=constants.RES_FORMAT)
 def create_artifact_tool(filename: str, content: str, content_type: str, config: RunnableConfig) -> ToolResult:
     """
     Create a downloadable artifact from the provided content.

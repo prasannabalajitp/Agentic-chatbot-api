@@ -2,12 +2,12 @@ from deepagents import create_deep_agent, HarnessProfile, register_harness_profi
 from langchain_core.messages import HumanMessage
 from llm.nvidia_llm import llm
 from middlewares.retry_empty_response_middleware import RetryEmptyResponseMiddleware
+from middlewares.tool_policy_middleware import ToolPolicyMiddleware
 from tools.tool_registry import registry
 from database.checkpointer import checkpointer
 from core.constants import constants
 from core.config import settings
 from common.prompt import SYSTEM_PROMPT
-from datetime import datetime, timezone
 
 register_harness_profile(
     settings.HARNESS_MODEL,
@@ -17,23 +17,16 @@ register_harness_profile(
 )
 
 tools = registry.get_all()
-current_datetime = (datetime.now(timezone.utc).isoformat())
-
-prompt = f"""
-Current datetime:
-{current_datetime}
-
-{SYSTEM_PROMPT}
-"""
 
 deep_agent = create_deep_agent(
     model=llm,
     tools=tools,
-    system_prompt=prompt,
+    system_prompt=SYSTEM_PROMPT,
     checkpointer=checkpointer,
     middleware=[
+        ToolPolicyMiddleware(),
         RetryEmptyResponseMiddleware(max_retries=2)
-    ]
+    ],
 )
 
 def invoke_deepagent(query: str, user_id: str, thread_id: str):
