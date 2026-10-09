@@ -28,7 +28,7 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             constants.SUMMARY: constants.USER_DOC_EMPTY,
             constants.CITATIONS: [],
             constants.METADATA: {
-                constants.SUCCESS: True,
+                constants.SUCC: True,
             },
         }
 
@@ -43,7 +43,7 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             constants.SUMMARY: constants.NO_REL_DOC,
             constants.CITATIONS: [],
             constants.METADATA: {
-                constants.SUCCESS: True,
+                constants.SUCC: True,
             },
         }
 
@@ -64,7 +64,7 @@ def ai_search_impl(query: str,context: dict) -> ToolResult:
             for doc in documents
         ],
         constants.METADATA: {
-            constants.SUCCESS: True,
+            constants.SUCC: True,
         }
     }
 
