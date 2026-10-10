@@ -1,16 +1,46 @@
+import logging
 from datetime import datetime, timezone, timedelta
+from typing import Callable, TypeVar
+
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 from database.mongodb import usage_collection
 from core.constants import constants
+from exceptions.database import DatabaseError, DatabaseConnectionError, DatabaseOperationError
+
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 class UsageRepository:
     def __init__(self):
         self.collection = usage_collection
 
+    def _handle_database_error(self, exc: Exception) -> None:
+        if isinstance(exc, DatabaseError):
+            raise exc
+
+        logger.exception("Database operation failed.")
+
+        if isinstance(exc, (ConnectionFailure, ServerSelectionTimeoutError)):
+            raise DatabaseConnectionError() from exc
+
+        raise DatabaseOperationError() from exc
+
+    def _execute(self, operation: Callable[[], T]) -> T:
+        try:
+            return operation()
+        except DatabaseError:
+            raise
+        except Exception as exc:
+            self._handle_database_error(exc)
+
     def create_usage(self, usage: dict):
         usage[constants.CREATED_AT] = datetime.now(timezone.utc)
-        result = self.collection.insert_one(usage)
+
+        result = self._execute(lambda: self.collection.insert_one(usage))
         return result.inserted_id
 
     def get_user_usage(self, user_id: str):
@@ -45,7 +75,8 @@ class UsageRepository:
             }
         ]
 
-        result = list(self.collection.aggregate(pipeline))
+        result = self._execute(lambda: list(self.collection.aggregate(pipeline)))
+
         if not result:
             return {
                 "conversations": 0,
@@ -67,10 +98,9 @@ class UsageRepository:
             "tool_calls": data.get("tool_calls", 0)
         }
 
-
     def get_token_usage(self, user_id: str, period: str = "7d"):
         days = self._get_period_days(period)
-        start_date = (datetime.now(timezone.utc) - timedelta(days=days))
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         pipeline = [
             {
@@ -89,15 +119,12 @@ class UsageRepository:
                             "date": f"${constants.CREATED_AT}"
                         }
                     },
-
                     "input_tokens": {
                         "$sum": f"${constants.INP_TKN}"
                     },
-
                     "output_tokens": {
                         "$sum": f"${constants.OUT_TKN}"
                     },
-
                     "total_tokens": {
                         "$sum": f"${constants.TOT_TKN}"
                     }
@@ -110,25 +137,19 @@ class UsageRepository:
             }
         ]
 
-        result = list(self.collection.aggregate(pipeline))
+        result = self._execute(
+            lambda: list(self.collection.aggregate(pipeline))
+        )
+
         data = []
 
         for item in result:
             data.append(
                 {
                     "date": item["_id"],
-                    "input_tokens": item.get(
-                        "input_tokens",
-                        0
-                    ),
-                    "output_tokens": item.get(
-                        "output_tokens",
-                        0
-                    ),
-                    "total_tokens": item.get(
-                        "total_tokens",
-                        0
-                    )
+                    "input_tokens": item.get("input_tokens", 0),
+                    "output_tokens": item.get("output_tokens", 0),
+                    "total_tokens": item.get("total_tokens", 0)
                 }
             )
 
@@ -162,7 +183,10 @@ class UsageRepository:
             }
         ]
 
-        result = list(self.collection.aggregate(pipeline))
+        result = self._execute(
+            lambda: list(self.collection.aggregate(pipeline))
+        )
+
         tools = [
             {
                 "name": item["_id"],
@@ -170,9 +194,8 @@ class UsageRepository:
             }
             for item in result
         ]
-        total_tool_calls = self._get_total_tool_calls(
-            user_id=user_id
-        )
+
+        total_tool_calls = self._get_total_tool_calls(user_id=user_id)
 
         return {
             "total_tool_calls": total_tool_calls,
@@ -181,7 +204,6 @@ class UsageRepository:
 
     @staticmethod
     def _get_period_days(period: str) -> int:
-
         period_map = {
             "7d": 7,
             "30d": 30,
@@ -189,38 +211,32 @@ class UsageRepository:
         }
 
         if period not in period_map:
-            raise ValueError(
-                f"Unsupported usage period: {period}"
-            )
+            raise ValueError(f"Unsupported usage period: {period}")
 
         return period_map[period]
 
     def _get_total_tool_calls(self, user_id: str):
-
-        result = self.collection.aggregate(
-            [
-                {
-                    "$match": {
-                        constants.USER_ID: user_id
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": None,
-                        "total_tool_calls": {
-                            "$sum": f"${constants.TOOL_CALLS}"
-                        }
+        pipeline = [
+            {
+                "$match": {
+                    constants.USER_ID: user_id
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_tool_calls": {
+                        "$sum": f"${constants.TOOL_CALLS}"
                     }
                 }
-            ]
-        )
+            }
+        ]
 
-        result = list(result)
+        result = self._execute(
+            lambda: list(self.collection.aggregate(pipeline))
+        )
 
         if not result:
             return 0
 
-        return result[0].get(
-            "total_tool_calls",
-            0
-        )
+        return result[0].get("total_tool_calls", 0)

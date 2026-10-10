@@ -1,7 +1,10 @@
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 from core.config import settings
 from database.mongodb import file_vector_collection
+from exceptions.database import DatabaseError, DatabaseOperationError, DatabaseConnectionError
+from exceptions.external_service import ExternalServiceError
 
 class RetrievalService:
 
@@ -12,7 +15,11 @@ class RetrievalService:
         )
 
     def retrieve(self, query: str, user_id: str, thread_id: str, limit: int = 3):
-        query_vector = self.embedding_model.embed_query(query)
+        try:
+            query_vector = self.embedding_model.embed_query(query)
+
+        except Exception as e:
+            raise ExternalServiceError("Unable to generate the query emebeddings") from e
 
         pipeline = [
             {
@@ -42,7 +49,17 @@ class RetrievalService:
             }
         ]
 
-        results = list(file_vector_collection.aggregate(pipeline))
+        try:
+            results = list(file_vector_collection.aggregate(pipeline))
+
+        except DatabaseError:
+            raise
+
+        except Exception as e:
+            if isinstance(e, (ConnectionFailure, ServerSelectionTimeoutError),):
+                raise DatabaseConnectionError() from e
+
+            raise DatabaseOperationError() from e
         return [
             {
                 "file_name": result["file_name"],

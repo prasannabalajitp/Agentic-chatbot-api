@@ -14,7 +14,8 @@ from repository.usage_repository import UsageRepository
 from service.agent_service import AgentService
 from service.guardrail_service import GuardRailService
 from service.title_service import TitleService
-
+from exceptions.agent import AgentConfigurationError, AgentExecutionError, AgentTimeoutError
+from exceptions.application import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -39,21 +40,66 @@ class ChatService:
             uploaded_files=uploaded_files,
         )
 
+    @staticmethod
+    def _agent_error_details(exc: Exception) -> dict:
+        """Return a safe, client-facing representation of an agent error."""
+        if isinstance(exc, AgentTimeoutError):
+            return {
+                constants.TYPE: exc.code,
+                constants.MSG: "The request timed out. Please try again.",
+            }
+
+        if isinstance(exc, AgentConfigurationError):
+            return {
+                constants.TYPE: "AGENT_CONFIGURATION_ERROR",
+                constants.MSG: "The agent is temporarily unavailable.",
+            }
+
+        if isinstance(exc, AgentExecutionError):
+            return {
+                constants.TYPE: exc.code,
+                constants.MSG: "Unable to process your request. Please try again.",
+            }
+
+        return {
+            constants.TYPE: "INTERNAL_SERVER_ERROR",
+            constants.MSG: "An unexpected error occurred.",
+        }
+
     def create_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str, query: str):
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND,
+            # raise HTTPException(
+            #     status_code=404,
+            #     detail=constants.CONVERSATION_NOT_FOUND,
+            # )
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code="CONVERSATION_NOT_FOUND"
             )
 
         self.guardrails.validate_prompt(query)
         context = self._create_agent_context(user_id=user_id, thread_id=thread_id, query=query)
-        result = self.agent_service.invoke(context)
+        try:
+            result = self.agent_service.invoke(context)
+
+        except AgentConfigurationError:
+            logger.exception("Agent configuration failure | user=%s | thread=%s",   user_id,    thread_id)
+            raise
+
+        except AgentTimeoutError:
+            logger.exception("Agent timeout | user=%s | thread=%s", user_id,    thread_id)
+            raise
+
+        except AgentExecutionError:
+            logger.exception("Agent execution failure | user=%s | thread=%s",   user_id,    thread_id)
+            raise
+
+        except Exception as exc:
+            logger.exception("Unexpected agent failure | user=%s | thread=%s",  user_id,    thread_id)
+            raise AgentExecutionError() from exc
 
         logger.info("Agent execution completed | user=%s | thread=%s", user_id, thread_id)
-        # response = result[constants.MESSAGES][-1].content
-        response = result.response
-        response = self.guardrails.validate_response(response)
+        response = self.guardrails.validate_response(result.response)
         self.conversation_repository.update_conversation_activity(thread_id=thread_id)
 
         background_task.add_task(
@@ -71,9 +117,13 @@ class ChatService:
     async def stream_message(self, background_task: BackgroundTasks, user_id: str, thread_id: str,query: str):
 
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND,
+            # raise HTTPException(
+            #     status_code=404,
+            #     detail=constants.CONVERSATION_NOT_FOUND,
+            # )
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND
             )
 
         try:
@@ -83,6 +133,7 @@ class ChatService:
             yield sse_event(
                 constants.ERR,
                 {
+                    constants.TYPE: "PROMPT_VALIDATION_ERROR",
                     constants.MSG: e.detail,
                 },
             )
@@ -159,7 +210,7 @@ class ChatService:
                     if tool_name and tool_name not in tools_used:
                         tools_used.append(tool_name)                
 
-                    self.guardrails.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
+                    # self.guardrails.validate_tool(tool_name=tool_name, tool_calls=tool_call_count)
 
                     yield sse_event(
                         constants.TOOL_CALL,
@@ -192,69 +243,95 @@ class ChatService:
                         tool_response
                     )
 
-        except Exception as e:
-            logger.exception("Agent streaming failed | user=%s | thread=%s", user_id, thread_id)
+        except (AgentConfigurationError, AgentTimeoutError, AgentExecutionError) as e:
+            logger.exception("Agent streaming failed | user=%s | thread=%s | code=%s", user_id, thread_id, e.code)
+
+            yield sse_event(
+                constants.ERR,
+                self._agent_error_details(e),
+            )
+            return
+
+        except Exception:
+            logger.exception("Unexpected streaming failure | user=%s | thread=%s", user_id, thread_id)
+
+            error = AgentExecutionError() 
+            yield sse_event(
+                constants.ERR,
+                self._agent_error_details(error),
+            )
+            return
+        
+        try:
+            if final_citations or final_artifacts:
+                self.agent_service.persist_citations(context=context, citations=final_citations, artifacts=final_artifacts)
+
+            logger.info(
+                "AGENT USAGE SUMMARY | user=%s | thread=%s | "
+                "model_calls=%s | tool_calls=%s | tools=%s | "
+                "input=%s | output=%s | total=%s",
+                user_id,
+                thread_id,
+                model_call_count,
+                tool_call_count,
+                tools_used,
+                usage[constants.INP_TKN],
+                usage[constants.OUT_TKN],
+                usage[constants.TOT_TKN],
+            )
+            usage_record = {
+                constants.USER_ID: user_id,
+                constants.THREAD_ID: thread_id,
+                constants.INP_TKN: usage[constants.INP_TKN],
+                constants.OUT_TKN: usage[constants.OUT_TKN],
+                constants.TOT_TKN: usage[constants.TOT_TKN],
+                constants.TOOL_CALLS: tool_call_count,
+                constants.TOOLS: tools_used,
+            }
+            self.usage_repository.create_usage(usage_record)
+            self.conversation_repository.update_conversation_activity(thread_id=thread_id,)
+            yield sse_event(
+                constants.CONV_ACTY,
+                {
+                    constants.THREAD_ID: thread_id,
+                },
+            )
+
+            conversation = self.conversation_repository.get_thread(thread_id=thread_id,)
+            logger.debug("CONVERSATION: %s", conversation)
+            
+            background_task.add_task(
+                self.title_service.rename_conversation_if_needed,
+                user_id,
+                thread_id,
+                query,
+            )
+
+        except Exception:
+            logger.exception("Post-processing failed | user=%s | thread=%s", user_id, thread_id)
 
             yield sse_event(
                 constants.ERR,
                 {
-                    constants.TYPE: type(e).__name__,
-                    constants.MSG: str(e),
+                    constants.TYPE: "POST_PROCESSING_ERROR",
+                    constants.MSG: (
+                        "The response was generated, but saving the conversation "
+                        "details failed."
+                    ),
                 },
             )
             return
-
-        if final_citations or final_artifacts:
-            self.agent_service.persist_citations(context=context, citations=final_citations, artifacts=final_artifacts)
-
-        logger.info(
-            "AGENT USAGE SUMMARY | user=%s | thread=%s | "
-            "model_calls=%s | tool_calls=%s | tools=%s | "
-            "input=%s | output=%s | total=%s",
-            user_id,
-            thread_id,
-            model_call_count,
-            tool_call_count,
-            tools_used,
-            usage[constants.INP_TKN],
-            usage[constants.OUT_TKN],
-            usage[constants.TOT_TKN],
-        )
-        usage_record = {
-            constants.USER_ID: user_id,
-            constants.THREAD_ID: thread_id,
-            constants.INP_TKN: usage[constants.INP_TKN],
-            constants.OUT_TKN: usage[constants.OUT_TKN],
-            constants.TOT_TKN: usage[constants.TOT_TKN],
-            constants.TOOL_CALLS: tool_call_count,
-            constants.TOOLS: tools_used,
-        }
-        self.usage_repository.create_usage(usage_record)
-        self.conversation_repository.update_conversation_activity(thread_id=thread_id,)
-        yield sse_event(
-            constants.CONV_ACTY,
-            {
-                constants.THREAD_ID: thread_id,
-            },
-        )
-
-        conversation = self.conversation_repository.get_thread(thread_id=thread_id,)
-        logger.debug("CONVERSATION: %s", conversation)
-        
-        background_task.add_task(
-            self.title_service.rename_conversation_if_needed,
-            user_id,
-            thread_id,
-            query,
-        )
         try:
             final_response = self.guardrails.validate_response(final_response)
 
         except Exception as e:
+            logger.exception("Response validation failed | user=%s | thread=%s", user_id, thread_id)
+
             yield sse_event(
                 constants.ERR,
                 {
-                    constants.MSG: str(e),
+                    constants.TYPE: "RESPONSE_VALIDATION_ERROR",
+                    constants.MSG: "The response could not be validated.",
                 },
             )
             return

@@ -14,6 +14,8 @@ from langchain_community.document_loaders import (
 )
 from langchain_core.documents import Document
 from core.constants import constants
+from exceptions.application import ValidationError
+from exceptions.artifact import ArtifactStorageError
 
 
 class DocumentParser:
@@ -36,7 +38,10 @@ class DocumentParser:
         """
 
         if not file.filename:
-            return ValueError(constants.INVALID_FILE)
+            return ValidationError(
+                constants.INVALID_FILE,
+                code=constants.INVALID_FILE
+            )
 
         extension = (
             constants.DOT
@@ -46,15 +51,19 @@ class DocumentParser:
         )
 
         if extension not in constants.ALLOWED_EXT:
-            return ValueError(
-                f"Unsupported file type: {extension}.\n"
-                f"Allowed types: {constants.ALLOWED_EXT}"
+            raise ValidationError(
+                f"Unsupported file type: {extension}. "
+                f"Allowed types: {constants.ALLOWED_EXT}",
+                code="UNSUPPORTED_FILE_TYPE",
             )
 
         loader_class = DocumentParser.LOADERS.get(extension)
 
         if not loader_class:
-            return ValueError(f"No loader configured for: {extension}")
+            raise ValidationError(
+                f"No loader configured for: {extension}",
+                code="DOCUMENT_LOADER_NOT_CONFIGURED",
+            )
 
         content = await file.read()
         temp_path = None
@@ -101,6 +110,14 @@ class DocumentParser:
                 document.metadata[constants.FILE_EXT] = extension
 
             return documents
+
+        except (ValidationError, ArtifactStorageError):
+            raise
+
+        except Exception as exc:
+            raise ArtifactStorageError(
+                "Unable to process the uploaded document."
+            ) from exc
 
         finally:
             if temp_path and os.path.exists(temp_path):

@@ -1,3 +1,5 @@
+import logging
+import re
 from typing import Any
 
 from langchain.tools import tool
@@ -7,146 +9,105 @@ from service.yfinance_service import YFinanceService
 from tools.decorator import register_tool
 from tools.tool_registry import ToolRisk
 
+logger = logging.getLogger(__name__)
 
 yfinance_service = YFinanceService()
 
 
 def _extract_ticker(value: str) -> str:
-    """
-    Extract a ticker symbol from either a plain ticker or
-    a natural-language query.
-
-    Examples:
-        GOLDBEES
-        GOLDBEES.NS
-        Current GOLDBEES stock price today
-        What is the stock price of GOLDBEES?
-    """
-
-    if not value:
-        raise ValueError("Ticker or query is required.")
+    if not value or not value.strip():
+        raise ValueError("A ticker or query is required.")
 
     value = value.strip().upper()
 
-    # If the value is already a simple ticker, return it.
     if " " not in value:
         return value
 
-    # Remove common natural-language words.
     ignored_words = {
-        "WHAT",
-        "IS",
-        "THE",
-        "CURRENT",
-        "STOCK",
-        "PRICE",
-        "TODAY",
-        "SHARE",
-        "SHARES",
-        "VALUE",
-        "OF",
-        "FOR",
-        "NOW",
-        "PLEASE",
-        "TELL",
-        "ME",
-        "LATEST",
-        "MARKET",
-        "RATE",
+        "WHAT", "IS", "THE", "CURRENT", "STOCK", "PRICE",
+        "TODAY", "SHARE", "SHARES", "VALUE", "OF", "FOR",
+        "NOW", "PLEASE", "TELL", "ME", "LATEST", "MARKET",
+        "RATE", "GET", "SHOW", "FIND", "QUOTE",
     }
 
-    # Remove punctuation.
-    cleaned = (
-        value.replace("?", " ")
-        .replace(",", " ")
-        .replace(".", " ")
-        .replace("!", " ")
-        .replace(":", " ")
-    )
-
+    cleaned = re.sub(r"[?!,:;]", " ", value)
     words = cleaned.split()
-
-    candidates = [
-        word
-        for word in words
-        if word not in ignored_words
-    ]
+    candidates = [word for word in words if word not in ignored_words]
 
     if not candidates:
-        raise ValueError(
-            f"Could not determine ticker from: {value}"
-        )
+        raise ValueError("Could not determine the ticker symbol.")
+
     return candidates[0]
 
 
-def yfinance_impl(
-    ticker: str | None = None,
-    symbol: str | None = None,
-    query: str | None = None,
-    context: Any = None,
-) -> dict[str, Any]:
-    """
-    Internal handler used by the tool registry.
-
-    Supports:
-        ticker="GOLDBEES"
-        symbol="GOLDBEES"
-        query="Current GOLDBEES stock price today"
-    """
-
+def yfinance_impl(ticker: str | None = None, symbol: str | None = None, query: str | None = None, context: Any = None) -> dict[str, Any]:
     raw_value = ticker or symbol or query
 
-    if not raw_value:
+    if not raw_value or not raw_value.strip():
         return {
-            "summary": "Please provide a stock ticker symbol.",
-            "citations": [],
-            "metadata": {},
+            constants.SUMMARY: "Please provide a stock ticker symbol.",
+            constants.CITATIONS: [],
+            constants.METADATA: {
+                constants.SUCC: False,
+                constants.RETRYABLE: False,
+            },
         }
 
     try:
         normalized_ticker = _extract_ticker(raw_value)
-
-        return yfinance_service.get_quote(normalized_ticker)
-
-    except Exception as ex:
+    except ValueError:
         return {
-            "summary": f"Unable to process ticker: {str(ex)}",
-            "citations": [],
-            "metadata": {},
+            constants.SUMMARY: (
+                "Unable to identify a stock ticker. Please provide a symbol, "
+                "such as AAPL or GOLDBEES.NS."
+            ),
+            constants.CITATIONS: [],
+            constants.METADATA: {
+                constants.SUCC: False,
+                constants.RETRYABLE: False,
+            },
+        }
+
+    try:
+        return yfinance_service.get_quote(normalized_ticker)
+    except Exception:
+        logger.exception(
+            "Unexpected finance tool failure | ticker=%s",
+            normalized_ticker,
+        )
+        return {
+            constants.SUMMARY: (
+                "Unable to retrieve financial information at this time."
+            ),
+            constants.CITATIONS: [],
+            constants.METADATA: {
+                constants.TICKER: normalized_ticker,
+                constants.SUCC: False,
+                constants.RETRYABLE: True,
+            },
         }
 
 
-@register_tool(
-    name=constants.YFINANCE,
-    handler=yfinance_impl,
-    category=constants.GEN,
-    risk=ToolRisk.MEDIUM
-)
+@register_tool(name=constants.YFINANCE, handler=yfinance_impl, category=constants.GEN, risk=ToolRisk.MEDIUM)
 @tool
 def yfinance_tool(
     ticker: str | None = None,
     symbol: str | None = None,
     query: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Get current financial market information for a stock or ETF.
+    """Get market information for a stock or ETF.
 
-    Provide any one of:
+    Args:
         ticker: Yahoo Finance ticker symbol.
-        symbol: Stock/ETF symbol.
+        symbol: Stock or ETF symbol.
         query: Natural-language request containing the ticker.
 
-    Examples:
-        ticker="AAPL"
-        symbol="GOLDBEES"
-        query="Current GOLDBEES stock price today"
-
     Returns:
-        Current market information.
+        Structured financial information and citations.
     """
-    print("IN YFINANCE TOOL")
     return yfinance_impl(
         ticker=ticker,
         symbol=symbol,
         query=query,
     )
+	

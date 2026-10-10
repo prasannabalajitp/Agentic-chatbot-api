@@ -8,7 +8,7 @@ from context.agent_context import AgentContext
 from context.agent_result import AgentResult
 from core.constants import constants
 from context.agent_event import AgentEvent, AgentEventType
-
+from exceptions.agent import AgentConfigurationError, AgentExecutionError, AgentTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,8 @@ class AgentService:
             tool_content = getattr(tool_output, constants.CONTENT, constants.EMPTY_STRING)
             tool_artifact = getattr(tool_output, constants.ARTIFACT_DATA, None)
 
+            logger.info("TOOL END | tool=%s | content=%r", tool_name, tool_content)
+
             citations = []
 
             if isinstance(tool_content, str):
@@ -201,15 +203,27 @@ class AgentService:
         """
         Execute the DeepAgent synchronously.
         """
-        config = self.create_config(context)
-        input_data = self._create_input(context)
-        logger.info("Invoking DeepAgent | user=%s | thread=%s", context.user_id, context.thread_id)
+        try:
+            config = self.create_config(context)
+            input_data = self._create_input(context)
+            logger.info("Invoking DeepAgent | user=%s | thread=%s", context.user_id, context.thread_id)
 
-        result = self.deepagent.invoke(
-            input_data,
-            config=config
-        )
-        return self._normalize_result(result)
+            result = self.deepagent.invoke(
+                input_data,
+                config=config
+            )
+            return self._normalize_result(result)
+        
+        except (AgentConfigurationError, AgentExecutionError, AgentTimeoutError):
+            raise
+
+        except Exception as exc:
+            logger.exception(
+                "DeepAgent invocation failed | user=%s | thread=%s",
+                context.user_id,
+                context.thread_id,
+            )
+            raise AgentExecutionError() from exc
 
     async def stream(self, context: AgentContext):
         """
@@ -218,11 +232,19 @@ class AgentService:
         ChatService can consume these events without knowing
         how the DeepAgent is invoked.
         """
-        config = self.create_config(context)
-        input_data = self._create_input(context)
-        logger.info("Streaming DeepAgent | user=%s | thread=%s", context.user_id, context.thread_id)
+        try:
+            config = self.create_config(context)
+            input_data = self._create_input(context)
+            logger.info("Streaming DeepAgent | user=%s | thread=%s", context.user_id, context.thread_id)
 
-        async for event in self.deepagent.astream_events(input_data, config=config, version=constants.V2):
-            agent_event = self._normalize_event(event)
-            if agent_event:
-                yield agent_event
+            async for event in self.deepagent.astream_events(input_data, config=config, version=constants.V2):
+                agent_event = self._normalize_event(event)
+                if agent_event:
+                    yield agent_event
+
+        except (AgentConfigurationError, AgentExecutionError, AgentTimeoutError):
+            raise
+
+        except Exception as exc:
+            logger.exception("DeepAgent streaming failed | user=%s | thread=%s", context.user_id, context.thread_id)
+            raise AgentExecutionError() from exc
