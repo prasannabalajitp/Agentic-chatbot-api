@@ -126,6 +126,7 @@ class Constants:
     CURR_STEP = "current_step"
     MSG_COUNT = "message_count"
     LST_MSG_AT = "last_message_at"
+
     
 
     #security.py
@@ -175,6 +176,14 @@ class Constants:
     FILE_NOT_FOUND = "File not found."
     NO_FILES = "No files found for this user"
     FILE_DEL_SUC = "File Deleted Successfully."
+
+    #retrieval_service.py
+    QUERY_VALIDATION = "query must not be empty."
+    LIMIT_VALIDATION = "limit must be greater than zero."
+    USR_ID_VALIDATION = "user_id and thread_id are required."
+    EMBEDDING_ERR = "Unable to generate the query emebeddings"
+    VECTOR_VALIDATION = "Skipping malformed vector-search result"
+    NUM_CAND_VALIDATION = "num_candidates must be greater than or equal to limit."
 
 
     #user_service.py
