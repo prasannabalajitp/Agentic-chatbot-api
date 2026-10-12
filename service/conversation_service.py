@@ -1,5 +1,3 @@
-from fastapi import HTTPException
-
 from common.configurable import create_graph_config
 
 from repository.user_repository import UserRepository
@@ -9,8 +7,10 @@ from repository.file_repository import FileRepository
 from service.chat_history_service import get_chat_history
 from service.guardrail_service import GuardRailService
 from service.title_service import TitleService
+
 from models.response_model import ConversationResponse, ConversationListResponse
 from core.constants import constants
+from exceptions.application import ResourceNotFoundError, ValidationError
 
 import math
 import logging
@@ -31,9 +31,9 @@ class ConversationService:
     
     def create_conversation(self, user_id: str,   title: str = constants.DEFAULT_TITLE):
         if not self.user_repository.user_exists(user_id=user_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.USR_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.USR_NOT_FOUND,
+                code=constants.USR_NOT_FOUND
             )
 
         result = self.conversation_repository.create_thread(
@@ -41,13 +41,12 @@ class ConversationService:
             title=title
         )
 
-        data = {
+        return {
             constants.THREAD_ID: result[constants.THREAD_ID],
             constants.USER_ID: result[constants.USER_ID],
             constants.TITLE: result[constants.TITLE],
             constants.CREATED_AT: str(result[constants.CREATED_AT])
         }
-        return data
 
     def extract_chunk_content(self, chunk) -> str:
         logger.warning("CHUNK : %s", chunk)
@@ -88,41 +87,44 @@ class ConversationService:
     def get_messages(self, user_id: str,  thread_id: str):
 
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND
             )
 
         return get_chat_history(thread_id)
 
     def get_conversation(self, user_id: str, thread_id: str):
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(status_code=404, detail=constants.CONVERSATION_NOT_FOUND)
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND)
+        
         conversation = self.conversation_repository.get_thread(thread_id=thread_id)
 
         if not conversation:
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND
             )
         return conversation
     
     def get_conversation_details(self, user_id: str, page: int=1, limit: int=20):
         if page < 1:
-            raise HTTPException(
-                status_code=400,
-                detail=constants.PAGE_EXCP
+            raise ValidationError(
+                constants.PAGE_EXCP,
+                code="INVALID_PAGE"
             )
         if limit < 1 or limit > 100:
-            raise HTTPException(
-                status_code=400,
-                detail=constants.LMT_EXCP
+            raise ValidationError(
+                constants.LMT_EXCP,
+                code="INVALID_LIMIT",
             )
         
         if not self.user_repository.user_exists(user_id=user_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.USR_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.USR_NOT_FOUND,
+                code=constants.USR_NOT_FOUND
             )
         
         skip = (page - 1) * limit
@@ -153,9 +155,9 @@ class ConversationService:
     def delete_conversation(self, user_id: str,   thread_id: str):
 
         if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND
             )
 
         self.conversation_repository.delete_thread_checkpoints(thread_id=thread_id)
@@ -168,15 +170,15 @@ class ConversationService:
     
     def clear_conversation_messages(self, user_id: str, thread_id: str):
         if not self.user_repository.user_exists(user_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.USR_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.USR_NOT_FOUND,
+                code=constants.USR_NOT_FOUND
             )
 
         if not self.conversation_repository.validate_thread(user_id=user_id,    thread_id=thread_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.CONVERSATION_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.CONVERSATION_NOT_FOUND,
+                code=constants.CONVERSATION_NOT_FOUND
             )
 
         self.conversation_repository.delete_thread_checkpoints(thread_id)

@@ -10,6 +10,7 @@ from routers.admin import router as admin_router
 from routers.file import router as file_router
 from routers.artifact import router as artifact_router
 from core.constants import constants
+from exceptions.handler import register_exception_handlers
 import logging
 
 logging.basicConfig(
@@ -22,11 +23,6 @@ app = FastAPI(
     description=constants.CHATBOT
 )
 
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -37,6 +33,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+register_exception_handlers(app)
+
 app.include_router(admin_router)
 app.include_router(user_router)
 app.include_router(conversation_router)
@@ -44,3 +42,8 @@ app.include_router(message_router)
 app.include_router(file_router)
 app.include_router(auth_router)
 app.include_router(artifact_router)
+
+
+@app.get("/health")
+async def hello():
+    return "Application Runs Fine"

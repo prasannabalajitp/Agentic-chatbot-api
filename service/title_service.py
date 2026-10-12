@@ -1,10 +1,14 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from fastapi import HTTPException
 
 from common.prompt import TITLE_PROMPT
 from core.constants import constants
 from repository.user_repository import UserRepository
 from repository.conversation_repository import ConversationRepository
+
+from exceptions.application import ResourceNotFoundError, ValidationError
+from exceptions.external_service import ExternalServiceError
+from exceptions.database import DatabaseError
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,37 +32,54 @@ class TitleService:
                     ]
             try:
                 result = self.title_llm.invoke(messages)
-                return result.content.strip()
+                title = result.content.strip()
+                
+                if not title:
+                    raise ExternalServiceError("The title model returned an empty title.")
+                return title
+
+            except ExternalServiceError:
+                raise
+
             except Exception as e:
-                 return HTTPException(
-                      status_code=500,
-                      detail=str(e)
-                 )
+                raise ExternalServiceError("Unable to generate a conversation title.") from e
 
     def rename_conversation(self, user_id: str, thread_id: str, title: str):
     
             if not self.user_repository.user_exists(user_id):
-                raise HTTPException(
-                    status_code=404,
-                    detail=constants.USR_NOT_FOUND
+                raise ResourceNotFoundError(
+                    constants.USR_NOT_FOUND,
+                    code="USER_NOT_FOUND",
                 )
             if not self.conversation_repository.validate_thread(user_id=user_id, thread_id=thread_id):
-                raise HTTPException(
-                    status_code=404,
-                    detail=constants.CONVERSATION_NOT_FOUND
+                raise ResourceNotFoundError(
+                    constants.CONVERSATION_NOT_FOUND,
+                    code="CONVERSATION_NOT_FOUND",
                 )
             
             title = title.strip()
     
             if not title:
-                raise HTTPException(status_code=400, detail=constants.CONV_TITLE_NAME_EXCP)
+                raise ValidationError(
+                    constants.CONV_TITLE_NAME_EXCP,
+                    code="INVALID_CONVERSATION_TITLE",
+                )
             
             if len(title) > 100:
-                raise HTTPException(status_code=400,    detail=constants.CONV_TITLE_EXCP)
+                raise ValidationError(
+                    constants.CONV_TITLE_EXCP,
+                    code="CONVERSATION_TITLE_TOO_LONG",
+                )
             
             self. conversation_repository.update_thread_title(thread_id=thread_id, title= title)
     
             conversation = self.conversation_repository.get_thread(thread_id)
+            
+            if not conversation:
+                raise ResourceNotFoundError(
+                    constants.CONVERSATION_NOT_FOUND,
+                    code="CONVERSATION_NOT_FOUND",
+                )
     
             return {
                 constants.THREAD_ID: conversation[constants.THREAD_ID],
@@ -76,6 +97,9 @@ class TitleService:
                 conversation = self.conversation_repository.get_thread(thread_id)
                 logger.warning("RENAME TASK: current title = %s", conversation[constants.TITLE])
 
+                if not conversation:
+                    return
+            
                 if conversation[constants.TITLE] != constants.DEFAULT_TITLE:
                     logger.warning("RENAME TASK: title already changed")
                     return
@@ -87,6 +111,11 @@ class TitleService:
     
                 self.conversation_repository.update_thread_title(thread_id=thread_id, title=title)
                 logger.warning("RENAME TASK: title updated successfully")
-            except Exception as ex:
-                logger.warning("Failed to generate conversation title : %s",ex)
-                return
+            except DatabaseError:
+                logger.exception("Database failure during title generation | user=%s | thread=%s", user_id, thread_id)
+
+            except ExternalServiceError:
+                logger.exception("Title model failure | user=%s | thread=%s", user_id, thread_id)
+
+            except Exception:
+                logger.exception("Unexpected title generation failure | user=%s | thread=%s", user_id, thread_id)

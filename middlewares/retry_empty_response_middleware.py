@@ -2,6 +2,10 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import HumanMessage
 from core.constants import constants
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class RetryEmptyResponseMiddleware(AgentMiddleware):
 
     def __init__(self, max_retries: int = 1):
@@ -34,6 +38,8 @@ class RetryEmptyResponseMiddleware(AgentMiddleware):
         if attempt == 0:
             return request
 
+        logger.warning("Retrying empty LLM response | attempt=%s/%s", attempt, self.max_retries)
+
         messages = list(request.messages)
 
         messages.append(
@@ -54,6 +60,7 @@ class RetryEmptyResponseMiddleware(AgentMiddleware):
             if self._is_valid_response(response):
                 return response
 
+        logger.warning("LLM response remained invalid after retries | max_retries=%s", self.max_retrie)
         return response
 
     async def awrap_model_call(self, request, handler):
@@ -65,5 +72,7 @@ class RetryEmptyResponseMiddleware(AgentMiddleware):
 
             if self._is_valid_response(response):
                 return response
+        
+        logger.warning("LLM response remained invalid after retries | max_retries=%s", self.max_retries)
 
         return response

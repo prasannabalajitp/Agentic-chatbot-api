@@ -6,6 +6,7 @@ from repository.conversation_repository import ConversationRepository
 from repository.refresh_token_repository import RefreshTokenRepository
 
 from core.constants import constants
+from exceptions.application import ResourceNotFoundError, ValidationError
 
 
 class AdminService:
@@ -36,9 +37,9 @@ class AdminService:
             )
         
         if not self.user_repository.user_exists(user_id):
-            raise HTTPException(
-                status_code=404,
-                detail=constants.USR_NOT_FOUND
+            raise ResourceNotFoundError(
+                constants.USR_NOT_FOUND,
+                code=constants.USR_NOT_FOUND
             )
         
         if role not in [constants.USER, constants.ADM]:
@@ -61,7 +62,10 @@ class AdminService:
     
     def delete_user(self, user_id: str):
         if not self.user_repository.user_exists(user_id):
-            raise HTTPException(status_code=404, detail=constants.USR_NOT_FOUND)
+            raise ResourceNotFoundError(
+                constants.USR_NOT_FOUND,
+                code=constants.USR_NOT_FOUND
+            )
         
         self.refresh_tkn_repository.revoke_all_refresh_tokens(user_id)
         self.conversation_repository.delete_user_threads(user_id)
@@ -75,7 +79,10 @@ class AdminService:
     
     def delete_conversation(self, thread_id: str):
         if not self.conversation_repository.get_thread(thread_id):
-            raise HTTPException(status_code=404, detail=constants.THRD_NOT_FOUND)
+            raise ResourceNotFoundError(
+                constants.THRD_NOT_FOUND,
+                code=constants.THRD_NOT_FOUND
+            )
         
         self.conversation_repository.delete_thread(thread_id)
 

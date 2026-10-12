@@ -15,7 +15,7 @@ class GuardRailService:
         self.prompt_guardrail.validate(query)
 
     def validate_tool(self, tool_name, tool_calls):
-        self.tool_guardrail.validate(tool_name, tool_calls)
+        return self.tool_guardrail.validate(tool_name, tool_calls)
 
     def validate_retrieval(self, text):
         return self.retrieval_guardrail.validate(text)

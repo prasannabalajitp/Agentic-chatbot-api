@@ -1,16 +1,19 @@
 from ddgs import DDGS
 from bs4 import BeautifulSoup
 import requests
+import logging
 
 from core.constants import constants
+
+logger = logging.getLogger(__name__)
 
 
 class WebSearchService:
 
     MAX_RESULTS = 5
     MAX_PAGES = 3
-    MAX_CONTENT_PER_PAGE = 3000
-    MAX_TOTAL_CONTENT = 8000
+    MAX_CONTENT_PER_PAGE = 1000
+    MAX_TOTAL_CONTENT = 3000
     TIMEOUT = 8
 
     def search(self, query: str) -> dict:
@@ -22,7 +25,11 @@ class WebSearchService:
                 return {
                     constants.SUMMARY: constants.NO_RSLTS_FND,
                     constants.CITATIONS: [],
-                    constants.METADATA: {},
+                    constants.METADATA: {
+                        constants.SUCC: True,
+                        constants.QUERY: query,
+                        constants.RESULT_CNT: 0,
+                    }
                 }
 
             citations = []
@@ -55,21 +62,80 @@ class WebSearchService:
 
             summary = "\n\n---\n\n".join(sources)
 
-            return {
+            logger.info(
+                "WEB SEARCH RESULT METADATA: %s",
+                {
+                    constants.SUCC: True,
+                    constants.QUERY: query,
+                    constants.RESULT_CNT: len(results),
+                },
+            )
+
+            result = {
                 constants.SUMMARY: summary,
                 constants.CITATIONS: citations,
                 constants.METADATA: {
+                    constants.SUCC: True,
                     constants.QUERY: query,
                     constants.RESULT_CNT: len(results),
                 },
             }
 
-        except Exception as ex:
+            return result
+
+        except (TimeoutError, requests.Timeout):
+            logger.exception("Web search timeout | query=%s", query)
+
             return {
-                constants.SUMMARY:
-                    f"Web search failed: {str(ex)}",
+                constants.SUMMARY: "Web search timed out.",
                 constants.CITATIONS: [],
-                constants.METADATA: {},
+                constants.METADATA: {
+                    constants.SUCC: False,
+                    constants.ERROR_TYPE: constants.TIMEOUT,
+                    constants.RETRYABLE: True,
+                },
+            }
+
+        except requests.HTTPError as ex: 
+            status_code = ex.response.status_code if ex.response else None
+            if status_code == 429:
+                logger.exception("Web search rate limited | query=%s", query)
+
+                return {
+                    constants.SUMMARY: "Web search is temporarily rate limited.",
+                    constants.CITATIONS: [],
+                    constants.METADATA: {
+                        constants.SUCC: False,
+                        constants.ERROR_TYPE: constants.RATE_LIMIT,
+                        constants.RETRYABLE: True,
+                    },
+                }
+
+            if status_code and 500 <= status_code < 600:
+                logger.exception("Web search service error | query=%s | status=%s", query, status_code)
+                return {
+                    constants.SUMMARY: "Web search service is temporarily unavailable.",
+                    constants.CITATIONS: [],
+                    constants.METADATA: {
+                        constants.SUCC: False,
+                        constants.ERROR_TYPE: constants.SERVICE_ERROR,
+                        constants.RETRYABLE: True,
+                    },
+                }
+
+            raise
+
+        except Exception as ex:
+            logger.exception("Web search failed | query=%s", query)
+
+            return {
+                constants.SUMMARY: "Web search temporarily failed.",
+                constants.CITATIONS: [],
+                constants.METADATA: {
+                    constants.SUCC: False,
+                    constants.ERROR_TYPE: constants.UNKNOWN_ERROR,
+                    constants.RETRYABLE: False,
+                },
             }
 
     def _fetch(self, url: str) -> str:
@@ -86,7 +152,7 @@ class WebSearchService:
 
             response.raise_for_status()
             soup = BeautifulSoup(response.text, constants.HTML_PARSER)
-            for tag in soup([constants.BS4_SOUP]):
+            for tag in soup(constants.BS4_SOUP):
                 tag.decompose()
 
             content = (soup.find(constants.ARTICLE) or soup.find(constants.MAIN) or soup.body or soup)
